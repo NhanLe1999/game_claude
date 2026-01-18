@@ -347,6 +347,33 @@
             animation: fadeInOut 3s forwards;
             display: none;
         }
+
+        /* Blood splash */
+        #bloodLayer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2500;
+        }
+
+        .blood-splash {
+            position: absolute;
+            width: clamp(60px, 18vmin, 160px);
+            height: clamp(60px, 18vmin, 160px);
+            background:
+                radial-gradient(circle at 30% 30%, rgba(120,0,0,0.9) 0 12%, rgba(80,0,0,0.7) 13% 28%, transparent 29%),
+                radial-gradient(circle at 70% 40%, rgba(150,0,0,0.85) 0 10%, rgba(90,0,0,0.6) 11% 26%, transparent 27%),
+                radial-gradient(circle at 45% 75%, rgba(130,0,0,0.8) 0 8%, rgba(70,0,0,0.6) 9% 22%, transparent 23%);
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.6);
+            animation: bloodSplatter 0.8s ease-out forwards;
+        }
+
+        @keyframes bloodSplatter {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+            30% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); }
+        }
         
         @keyframes fadeInOut {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
@@ -531,6 +558,9 @@
         
         <!-- Notification -->
         <div class="notification" id="notification"></div>
+
+        <!-- Blood FX -->
+        <div id="bloodLayer"></div>
         
         <!-- Minimap -->
         <div class="minimap-container">
@@ -576,6 +606,16 @@
         let playerHealth = 100;
         let playerCash = 0;
         let wantedLevel = 0;
+        let lastCarHitTime = 0;
+        let playerStunUntil = 0;
+        let cameraShakeUntil = 0;
+        let cameraShakeStrength = 0;
+        let playerKnockdownStart = 0;
+        let playerKnockdownEnd = 0;
+        let playerRollSpins = 0;
+        let playerBaseYaw = 0;
+        let playerKnockbackEnd = 0;
+        let playerKnockbackVel = new THREE.Vector3();
         
         // Inventory
         let inventory = new Set();
@@ -828,7 +868,7 @@
             createTrees();
             createCharacter();
             createNPCs(15);
-            createCars(10);
+            createCars(14);
             
             // Initialize Quest System
             initializeQuestChains();
@@ -889,8 +929,8 @@
         function createBuildings() {
             const buildingColors = [0x8B4513, 0x696969, 0x4a4a4a, 0x5c4033, 0x36454f];
             
-            for (let bx = -2; bx <= 2; bx++) {
-                for (let bz = -2; bz <= 2; bz++) {
+            for (let bx = -2; bx <= 1; bx++) {
+                for (let bz = -2; bz <= 1; bz++) {
                     if (Math.random() > 0.3) {
                         const height = 20 + Math.random() * 60;
                         const width = 30 + Math.random() * 30;
@@ -902,11 +942,26 @@
                         });
                         
                         const building = new THREE.Mesh(geometry, material);
+                        const halfW = width / 2;
+                        const halfD = depth / 2;
+                        const blockCenterX = (bx + 0.5) * BLOCK_SIZE;
+                        const blockCenterZ = (bz + 0.5) * BLOCK_SIZE;
+                        const freeHalfX = (BLOCK_SIZE - ROAD_WIDTH) / 2 - halfW - 2;
+                        const freeHalfZ = (BLOCK_SIZE - ROAD_WIDTH) / 2 - halfD - 2;
+                        if (freeHalfX <= 0 || freeHalfZ <= 0) {
+                            continue;
+                        }
+                        
+                        const localX = (Math.random() * 2 - 1) * freeHalfX;
+                        const localZ = (Math.random() * 2 - 1) * freeHalfZ;
+                        
                         building.position.set(
-                            bx * BLOCK_SIZE + (Math.random() - 0.5) * 40,
+                            blockCenterX + localX,
                             height / 2,
-                            bz * BLOCK_SIZE + (Math.random() - 0.5) * 40
+                            blockCenterZ + localZ
                         );
+                        building.userData.halfW = halfW;
+                        building.userData.halfD = halfD;
                         building.castShadow = true;
                         building.receiveShadow = true;
                         
@@ -1076,32 +1131,74 @@
                 const roadIndex = Math.floor(Math.random() * 5) - 2;
                 const isHorizontal = Math.random() > 0.5;
                 const offset = (Math.random() - 0.5) * WORLD_SIZE * 0.8;
+                const laneOffset = (Math.random() > 0.5 ? 4 : -4);
                 
                 let x, z, rotation;
                 if (isHorizontal) {
                     x = offset;
-                    z = roadIndex * BLOCK_SIZE + (Math.random() > 0.5 ? 4 : -4);
+                    z = roadIndex * BLOCK_SIZE + laneOffset;
                     rotation = Math.random() > 0.5 ? 0 : Math.PI;
                 } else {
-                    x = roadIndex * BLOCK_SIZE + (Math.random() > 0.5 ? 4 : -4);
+                    x = roadIndex * BLOCK_SIZE + laneOffset;
                     z = offset;
                     rotation = Math.random() > 0.5 ? Math.PI/2 : -Math.PI/2;
                 }
                 
-                const carColor = carColors[Math.floor(Math.random() * carColors.length)];
+                const isPolice = Math.random() < 0.2;
+                const carColor = isPolice ? 0x111111 : carColors[Math.floor(Math.random() * carColors.length)];
                 
                 // Car body
                 const bodyGeometry = new THREE.BoxGeometry(4, 1.5, 2);
-                const bodyMaterial = new THREE.MeshLambertMaterial({ color: carColor });
-                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-                body.position.y = 0.75;
-                car.add(body);
+                if (isPolice) {
+                    const bodyGeomHalf = new THREE.BoxGeometry(4, 1.5, 1);
+                    const bodyWhite = new THREE.Mesh(
+                        bodyGeomHalf,
+                        new THREE.MeshLambertMaterial({ color: 0xffffff })
+                    );
+                    const bodyBlack = new THREE.Mesh(
+                        bodyGeomHalf,
+                        new THREE.MeshLambertMaterial({ color: 0x111111 })
+                    );
+                    bodyWhite.position.set(0, 0.75, 0.5);
+                    bodyBlack.position.set(0, 0.75, -0.5);
+                    car.add(bodyWhite);
+                    car.add(bodyBlack);
+                } else {
+                    const bodyMaterial = new THREE.MeshLambertMaterial({ color: carColor });
+                    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                    body.position.y = 0.75;
+                    car.add(body);
+                }
                 
                 // Car roof
                 const roofGeometry = new THREE.BoxGeometry(2, 1, 1.8);
-                const roof = new THREE.Mesh(roofGeometry, bodyMaterial);
+                const roofMaterial = new THREE.MeshLambertMaterial({ color: isPolice ? 0xffffff : carColor });
+                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
                 roof.position.set(-0.3, 1.75, 0);
                 car.add(roof);
+
+                if (isPolice) {
+                    const barGeometry = new THREE.BoxGeometry(1.4, 0.2, 0.6);
+                    const barMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
+                    const bar = new THREE.Mesh(barGeometry, barMaterial);
+                    bar.position.set(-0.3, 2.2, 0);
+                    car.add(bar);
+
+                    const lightGeometry = new THREE.BoxGeometry(0.5, 0.2, 0.4);
+                    const redLight = new THREE.Mesh(
+                        lightGeometry,
+                        new THREE.MeshBasicMaterial({ color: 0xff3333 })
+                    );
+                    const blueLight = new THREE.Mesh(
+                        lightGeometry,
+                        new THREE.MeshBasicMaterial({ color: 0x3388ff })
+                    );
+                    redLight.position.set(-0.7, 2.25, -0.2);
+                    blueLight.position.set(-0.7, 2.25, 0.2);
+                    car.add(redLight);
+                    car.add(blueLight);
+                    car.userData.policeLights = { red: redLight, blue: blueLight };
+                }
                 
                 // Wheels
                 const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
@@ -1116,13 +1213,17 @@
                 
                 car.position.set(x, 0, z);
                 car.rotation.y = rotation;
-                car.userData.speed = 0.05 + Math.random() * 0.05;
+                car.userData.speed = 0.07 + Math.random() * 0.06;
                 car.userData.direction = rotation;
+                car.userData.roadType = isHorizontal ? 'horizontal' : 'vertical';
+                car.userData.roadLine = isHorizontal ? z : x;
+                car.userData.isPolice = isPolice;
                 
                 scene.add(car);
                 cars.push(car);
             }
         }
+
         
         // ============================================
         // QUEST SYSTEM
@@ -1182,6 +1283,16 @@
             for (let i = -2; i <= 2; i++) {
                 if (Math.abs(z - i * BLOCK_SIZE) < ROAD_WIDTH/2) return true;
                 if (Math.abs(x - i * BLOCK_SIZE) < ROAD_WIDTH/2) return true;
+            }
+            return false;
+        }
+
+        function isBuildingOverRoad(x, z, halfW, halfD, margin = 2) {
+            for (let i = -2; i <= 2; i++) {
+                const hLine = i * BLOCK_SIZE;
+                if (Math.abs(z - hLine) < (ROAD_WIDTH / 2 + halfD + margin)) return true;
+                const vLine = i * BLOCK_SIZE;
+                if (Math.abs(x - vLine) < (ROAD_WIDTH / 2 + halfW + margin)) return true;
             }
             return false;
         }
@@ -1567,6 +1678,66 @@
             const distance = getDistanceTo(targetLocation.x, targetLocation.z);
             document.getElementById('questDistance').textContent = `Distance: ${Math.round(distance)}m`;
             updateQuestArrow(targetLocation);
+        }
+
+        function updatePlayerKnockdown(currentTime) {
+            if (currentTime >= playerKnockdownEnd) {
+                character.rotation.z = 0;
+                return false;
+            }
+            const t = currentTime - playerKnockdownStart;
+            const fallEnd = 250;
+            const rollEnd = 1050;
+            const total = Math.max(1, playerKnockdownEnd - playerKnockdownStart);
+            const standStart = Math.min(rollEnd, total * 0.8);
+            let rotZ = 0;
+
+            if (t < fallEnd) {
+                const u = t / fallEnd;
+                rotZ = -Math.PI / 2 * u;
+            } else if (t < standStart) {
+                const spinT = (t - fallEnd) / Math.max(1, standStart - fallEnd);
+                rotZ = -Math.PI / 2 - spinT * (Math.PI * 2 * playerRollSpins);
+            } else {
+                const u = (t - standStart) / Math.max(1, total - standStart);
+                rotZ = (-Math.PI / 2) * (1 - u);
+            }
+
+            character.rotation.y = playerBaseYaw;
+            character.rotation.x = 0;
+            character.rotation.z = rotZ;
+            return true;
+        }
+
+        function isBlockedByBuilding(x, z) {
+            for (let i = 0; i < buildings.length; i++) {
+                const b = buildings[i];
+                const halfW = b.userData.halfW || 0;
+                const halfD = b.userData.halfD || 0;
+                if (
+                    Math.abs(x - b.position.x) < halfW + 1 &&
+                    Math.abs(z - b.position.z) < halfD + 1
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function spawnBloodSplatter(count = 1) {
+            const layer = document.getElementById('bloodLayer');
+            if (!layer) return;
+            for (let i = 0; i < count; i++) {
+                const splash = document.createElement('div');
+                splash.className = 'blood-splash';
+                const x = 30 + Math.random() * 40;
+                const y = 30 + Math.random() * 40;
+                splash.style.left = `${x}%`;
+                splash.style.top = `${y}%`;
+                splash.style.transform = `translate(-50%, -50%) rotate(${(Math.random() - 0.5) * 60}deg) scale(${0.6 + Math.random() * 0.5})`;
+                layer.appendChild(splash);
+                setTimeout(() => splash.remove(), 900);
+            }
         }
         
         function getDistanceTo(x, z) {
@@ -2091,30 +2262,30 @@
             ctx.fillStyle = '#00ff00';
             npcs.forEach(npc => {
                 ctx.beginPath();
-                ctx.arc(centerX + npc.position.x * scale, centerY + npc.position.z * scale, 2, 0, Math.PI * 2);
+                ctx.arc(centerX - npc.position.x * scale, centerY - npc.position.z * scale, 2, 0, Math.PI * 2);
                 ctx.fill();
             });
             
             // Cars
             ctx.fillStyle = '#ffff00';
             cars.forEach(car => {
-                ctx.fillRect(centerX + car.position.x * scale - 2, centerY + car.position.z * scale - 1, 4, 2);
+                ctx.fillRect(centerX - car.position.x * scale - 2, centerY - car.position.z * scale - 1, 4, 2);
             });
             
             // Player
             ctx.fillStyle = '#ff0000';
             ctx.beginPath();
-            ctx.arc(centerX + character.position.x * scale, centerY + character.position.z * scale, 4, 0, Math.PI * 2);
+            ctx.arc(centerX - character.position.x * scale, centerY - character.position.z * scale, 4, 0, Math.PI * 2);
             ctx.fill();
             
             // Player direction
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(centerX + character.position.x * scale, centerY + character.position.z * scale);
+            ctx.moveTo(centerX - character.position.x * scale, centerY - character.position.z * scale);
             ctx.lineTo(
-                centerX + character.position.x * scale + Math.sin(character.rotation.y) * 8,
-                centerY + character.position.z * scale + Math.cos(character.rotation.y) * 8
+                centerX - character.position.x * scale + Math.sin(character.rotation.y) * 8,
+                centerY - character.position.z * scale + Math.cos(character.rotation.y) * 8
             );
             ctx.stroke();
         }
@@ -2158,19 +2329,22 @@
             let moveX = 0, moveZ = 0;
             const speed = 0.15;
             
-            if (keys['KeyW'] || keys['ArrowUp']) moveZ = 1;
-            if (keys['KeyS'] || keys['ArrowDown']) moveZ = -1;
-            if (keys['KeyA'] || keys['ArrowLeft']) moveX = -1;
-            if (keys['KeyD'] || keys['ArrowRight']) moveX = 1;
-            if (keys['Space']) shoot();
-            if (keys['KeyQ']) { keys['KeyQ'] = false; switchWeapon(); }
-            if (keys['Digit1']) { keys['Digit1'] = false; selectWeapon(0); }
-            if (keys['Digit2']) { keys['Digit2'] = false; selectWeapon(1); }
-            if (keys['Digit3']) { keys['Digit3'] = false; selectWeapon(2); }
-            
-            if (joystickActive) {
-                moveX = -joystickVector.x;
-                moveZ = -joystickVector.y;
+            const isStunned = currentTime < playerStunUntil;
+            if (!isStunned) {
+                if (keys['KeyW'] || keys['ArrowUp']) moveZ = 1;
+                if (keys['KeyS'] || keys['ArrowDown']) moveZ = -1;
+                if (keys['KeyA'] || keys['ArrowLeft']) moveX = -1;
+                if (keys['KeyD'] || keys['ArrowRight']) moveX = 1;
+                if (keys['Space']) shoot();
+                if (keys['KeyQ']) { keys['KeyQ'] = false; switchWeapon(); }
+                if (keys['Digit1']) { keys['Digit1'] = false; selectWeapon(0); }
+                if (keys['Digit2']) { keys['Digit2'] = false; selectWeapon(1); }
+                if (keys['Digit3']) { keys['Digit3'] = false; selectWeapon(2); }
+                
+                if (joystickActive) {
+                    moveX = -joystickVector.x;
+                    moveZ = -joystickVector.y;
+                }
             }
             
             const magnitude = Math.sqrt(moveX * moveX + moveZ * moveZ);
@@ -2179,16 +2353,37 @@
             if (isMoving) {
                 const normalizedX = (moveX / magnitude) * speed;
                 const normalizedZ = (moveZ / magnitude) * speed;
+                const nextX = character.position.x + normalizedX;
+                const nextZ = character.position.z + normalizedZ;
                 
-                character.position.x += normalizedX;
-                character.position.z += normalizedZ;
+                if (!isBlockedByBuilding(nextX, nextZ)) {
+                    character.position.x = nextX;
+                    character.position.z = nextZ;
+                } else {
+                    if (!isBlockedByBuilding(nextX, character.position.z)) {
+                        character.position.x = nextX;
+                    }
+                    if (!isBlockedByBuilding(character.position.x, nextZ)) {
+                        character.position.z = nextZ;
+                    }
+                }
+                
                 character.rotation.y = Math.atan2(normalizedX, normalizedZ);
                 
                 character.position.x = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, character.position.x));
                 character.position.z = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, character.position.z));
             }
             
-            updateCharacterAnimation(character, isMoving, deltaTime);
+            if (currentTime < playerKnockbackEnd) {
+                const timeFactor = deltaTime * 60;
+                character.position.x += playerKnockbackVel.x * timeFactor;
+                character.position.z += playerKnockbackVel.z * timeFactor;
+                playerKnockbackVel.multiplyScalar(0.92);
+            }
+            
+            if (!updatePlayerKnockdown(currentTime)) {
+                updateCharacterAnimation(character, isMoving, deltaTime);
+            }
             
             // NPCs
             npcs.forEach(npc => {
@@ -2250,11 +2445,50 @@
                 // Move along the car's facing direction (car body is oriented along +X at rotation.y = 0)
                 car.position.x += Math.cos(car.userData.direction) * car.userData.speed;
                 car.position.z += Math.sin(car.userData.direction) * car.userData.speed;
+                car.rotation.y = car.userData.direction;
                 
-                if (car.position.x > WORLD_SIZE/2) car.position.x = -WORLD_SIZE/2;
-                if (car.position.x < -WORLD_SIZE/2) car.position.x = WORLD_SIZE/2;
-                if (car.position.z > WORLD_SIZE/2) car.position.z = -WORLD_SIZE/2;
-                if (car.position.z < -WORLD_SIZE/2) car.position.z = WORLD_SIZE/2;
+                // Keep cars locked to their road line
+                if (car.userData.roadType === 'horizontal') {
+                    car.position.z = car.userData.roadLine;
+                } else {
+                    car.position.x = car.userData.roadLine;
+                }
+
+                if (car.userData.isPolice && car.userData.policeLights) {
+                    const blink = Math.floor(currentTime / 200) % 2;
+                    car.userData.policeLights.red.visible = blink === 0;
+                    car.userData.policeLights.blue.visible = blink === 1;
+                }
+
+                const carDist = character.position.distanceTo(car.position);
+                if (carDist < 2.6 && currentTime - lastCarHitTime > 700) {
+                    lastCarHitTime = currentTime;
+                    playerHealth = Math.max(0, playerHealth - 20);
+                    updateUI();
+                    showNotification('Hit by car!');
+                    spawnBloodSplatter(3 + Math.floor(Math.random() * 3));
+                    playerStunUntil = currentTime + 1500;
+                    playerKnockdownStart = currentTime;
+                    playerKnockdownEnd = currentTime + 1500;
+                    playerRollSpins = 2 + Math.floor(Math.random() * 2);
+                    playerBaseYaw = character.rotation.y;
+                    cameraShakeUntil = currentTime + 400;
+                    cameraShakeStrength = 0.4;
+                    
+                    const pushDir = new THREE.Vector3(
+                        Math.cos(car.userData.direction),
+                        0,
+                        Math.sin(car.userData.direction)
+                    );
+                    const pushSpeed = 1.2;
+                    playerKnockbackVel.set(pushDir.x * pushSpeed, 0, pushDir.z * pushSpeed);
+                    playerKnockbackEnd = currentTime + 500;
+                }
+                
+                if (car.position.x > WORLD_SIZE / 2) car.position.x = -WORLD_SIZE / 2;
+                if (car.position.x < -WORLD_SIZE / 2) car.position.x = WORLD_SIZE / 2;
+                if (car.position.z > WORLD_SIZE / 2) car.position.z = -WORLD_SIZE / 2;
+                if (car.position.z < -WORLD_SIZE / 2) car.position.z = WORLD_SIZE / 2;
             });
             
             // Projectiles & Explosions
@@ -2271,6 +2505,12 @@
             camera.position.x = character.position.x - Math.sin(cameraAngle) * cameraDistance;
             camera.position.y = cameraHeight;
             camera.position.z = character.position.z - Math.cos(cameraAngle) * cameraDistance;
+            if (currentTime < cameraShakeUntil) {
+                const shake = cameraShakeStrength * (1 - (cameraShakeUntil - currentTime) / 400);
+                camera.position.x += (Math.random() - 0.5) * shake;
+                camera.position.y += (Math.random() - 0.5) * shake;
+                camera.position.z += (Math.random() - 0.5) * shake;
+            }
             camera.lookAt(character.position.x, character.position.y + 2, character.position.z);
             
             // Minimap
