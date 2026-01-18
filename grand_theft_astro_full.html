@@ -154,7 +154,12 @@
             background: rgba(255, 255, 255, 0.5);
         }
         
-        #gunButton { right: var(--ui-margin); }
+        #gunButton {
+            right: var(--ui-margin);
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 60%;
+        }
         #holdUpButton { right: calc(var(--ui-margin) + var(--ui-action-size) + var(--ui-button-gap)); }
         
         /* Weapon Switch Button */
@@ -596,17 +601,21 @@
         const WEAPONS = {
             pistol: {
                 name: 'PISTOL', damage: 25, fireRate: 500, ammo: Infinity,
-                maxAmmo: Infinity, spread: 0.05, icon: '🔫', color: 0xffff00,
-                projectileSpeed: 2, isAutomatic: false
+                maxAmmo: Infinity, spread: 0.05, icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3QgeD0iOCIgeT0iMjgiIHdpZHRoPSIzNCIgaGVpZ2h0PSIxMCIgcng9IjIiIGZpbGw9IiNmNWY1ZjUiLz48cmVjdCB4PSIzNiIgeT0iMzAiIHdpZHRoPSIxMiIgaGVpZ2h0PSI2IiByeD0iMiIgZmlsbD0iI2Y1ZjVmNSIvPjxyZWN0IHg9IjI0IiB5PSIzOCIgd2lkdGg9IjgiIGhlaWdodD0iMTQiIHJ4PSIyIiBmaWxsPSIjZjVmNWY1Ii8+PC9zdmc+', color: 0xffff00,
+                projectileSpeed: 2, isAutomatic: false,
+                projectileIcon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3QgeD0iMjgiIHk9IjYiIHdpZHRoPSI4IiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iI2ZmZTA2NiIvPjxjaXJjbGUgY3g9IjMyIiBjeT0iNTAiIHI9IjYiIGZpbGw9IiNmZmUwNjYiLz48L3N2Zz4=',
+                projectileScale: 0.7
             },
             uzi: {
                 name: 'UZI', damage: 15, fireRate: 100, ammo: 120,
-                maxAmmo: 120, spread: 0.15, icon: '🔫', color: 0xffaa00,
-                projectileSpeed: 2.5, isAutomatic: true
+                maxAmmo: 120, spread: 0.15, icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3QgeD0iOCIgeT0iMjYiIHdpZHRoPSIzNiIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiNmZmQxNjYiLz48cmVjdCB4PSIzNiIgeT0iMjgiIHdpZHRoPSIxNCIgaGVpZ2h0PSI2IiByeD0iMiIgZmlsbD0iI2ZmZDE2NiIvPjxyZWN0IHg9IjIwIiB5PSIzOCIgd2lkdGg9IjgiIGhlaWdodD0iMTQiIHJ4PSIyIiBmaWxsPSIjZmZkMTY2Ii8+PHJlY3QgeD0iNDQiIHk9IjI0IiB3aWR0aD0iMTIiIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiNmZmQxNjYiLz48L3N2Zz4=', color: 0xffaa00,
+                projectileSpeed: 2.5, isAutomatic: true,
+                projectileIcon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3QgeD0iMTAiIHk9IjI4IiB3aWR0aD0iNDQiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNmZjlmMWMiLz48cmVjdCB4PSI0MiIgeT0iMjQiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxNiIgcng9IjYiIGZpbGw9IiNmZjlmMWMiLz48L3N2Zz4=',
+                projectileScale: 0.8
             },
             rocketLauncher: {
                 name: 'ROCKET', damage: 100, fireRate: 1500, ammo: 5,
-                maxAmmo: 5, spread: 0, icon: '🚀', color: 0xff4400,
+                maxAmmo: 5, spread: 0, icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3QgeD0iMjYiIHk9IjE0IiB3aWR0aD0iMTIiIGhlaWdodD0iMjgiIHJ4PSI2IiBmaWxsPSIjZmY2YjM1Ii8+PHBvbHlnb24gcG9pbnRzPSIzMiw2IDM4LDE0IDI2LDE0IiBmaWxsPSIjZmY2YjM1Ii8+PHBvbHlnb24gcG9pbnRzPSIyNiwzMiAxNiwzOCAyNiwzOCIgZmlsbD0iI2ZmNmIzNSIvPjxwb2x5Z29uIHBvaW50cz0iMzgsMzIgMzgsMzggNDgsMzgiIGZpbGw9IiNmZjZiMzUiLz48Y2lyY2xlIGN4PSIzMiIgY3k9IjI0IiByPSI0IiBmaWxsPSIjMTExIi8+PC9zdmc+', color: 0xff4400,
                 projectileSpeed: 1, isAutomatic: false, explosive: true, explosionRadius: 10
             }
         };
@@ -617,6 +626,7 @@
         let lastShotTime = 0;
         let projectiles = [];
         let explosions = [];
+        const projectileSpriteCache = new Map();
         
         // ============================================
         // QUEST CHAIN DATA - Đầy đủ từ code.html gốc
@@ -1033,14 +1043,28 @@
                     hairColor: [0x000000, 0x3d2914, 0xFFE4B5, 0x808080][Math.floor(Math.random() * 4)]
                 });
                 
-                npc.userData.velocity = {
-                    x: (Math.random() - 0.5) * 0.03,
-                    z: (Math.random() - 0.5) * 0.03
-                };
+                npc.userData.speed = 0.02 + Math.random() * 0.03;
+                npc.userData.wanderTarget = pickNPCWanderTarget(npc.position);
+                npc.userData.pauseUntil = 0;
                 npc.userData.isNPC = true;
                 
                 npcs.push(npc);
             }
+        }
+
+        function pickNPCWanderTarget(origin) {
+            let x, z;
+            let tries = 0;
+            do {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 30 + Math.random() * 120;
+                x = origin.x + Math.cos(angle) * distance;
+                z = origin.z + Math.sin(angle) * distance;
+                x = Math.max(-WORLD_SIZE/2 + 15, Math.min(WORLD_SIZE/2 - 15, x));
+                z = Math.max(-WORLD_SIZE/2 + 15, Math.min(WORLD_SIZE/2 - 15, z));
+                tries++;
+            } while (tries < 20 && isLocationOnRoad(x, z));
+            return { x, z };
         }
         
         function createCars(count) {
@@ -1738,10 +1762,16 @@
         // ============================================
         // WEAPON FUNCTIONS
         // ============================================
-        function switchWeapon() {
-            currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length;
+        function selectWeapon(index) {
+            if (index < 0 || index >= weaponKeys.length) return;
+            if (currentWeaponIndex === index) return;
+            currentWeaponIndex = index;
             currentWeapon = weaponKeys[currentWeaponIndex];
             updateWeaponUI();
+        }
+
+        function switchWeapon() {
+            selectWeapon((currentWeaponIndex + 1) % weaponKeys.length);
         }
         
         function updateWeaponUI() {
@@ -1750,14 +1780,32 @@
             
             const ammoText = document.getElementById('weaponAmmo');
             if (weapon.ammo === Infinity) {
-                ammoText.textContent = '∞';
+                ammoText.textContent = 'INF';
                 ammoText.classList.remove('low');
             } else {
                 ammoText.textContent = `${weapon.ammo} / ${weapon.maxAmmo}`;
                 ammoText.classList.toggle('low', weapon.ammo < weapon.maxAmmo * 0.2);
             }
             
-            document.getElementById('gunButton').textContent = weapon.icon;
+            const gunButton = document.getElementById('gunButton');
+            gunButton.style.backgroundImage = `url('${weapon.icon}')`;
+            gunButton.style.backgroundSize = weapon.iconScale || '60%';
+            gunButton.textContent = '';
+        }
+
+        function getProjectileSprite(weapon) {
+            if (!weapon.projectileIcon) return null;
+            let material = projectileSpriteCache.get(weapon.projectileIcon);
+            if (!material) {
+                const texture = new THREE.TextureLoader().load(weapon.projectileIcon);
+                texture.minFilter = THREE.LinearFilter;
+                material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+                projectileSpriteCache.set(weapon.projectileIcon, material);
+            }
+            const sprite = new THREE.Sprite(material);
+            const scale = weapon.projectileScale || 0.7;
+            sprite.scale.set(scale, scale, 1);
+            return sprite;
         }
         
         function shoot() {
@@ -1811,9 +1859,12 @@
                 projectile.rotation.x = Math.PI / 2;
                 projectile.rotation.z = -character.rotation.y;
             } else {
-                const bulletGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-                const bulletMaterial = new THREE.MeshBasicMaterial({ color: weapon.color });
-                projectile = new THREE.Mesh(bulletGeometry, bulletMaterial);
+                projectile = getProjectileSprite(weapon);
+                if (!projectile) {
+                    const bulletGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                    const bulletMaterial = new THREE.MeshBasicMaterial({ color: weapon.color });
+                    projectile = new THREE.Mesh(bulletGeometry, bulletMaterial);
+                }
             }
             
             projectile.position.copy(character.position);
@@ -2113,6 +2164,9 @@
             if (keys['KeyD'] || keys['ArrowRight']) moveX = 1;
             if (keys['Space']) shoot();
             if (keys['KeyQ']) { keys['KeyQ'] = false; switchWeapon(); }
+            if (keys['Digit1']) { keys['Digit1'] = false; selectWeapon(0); }
+            if (keys['Digit2']) { keys['Digit2'] = false; selectWeapon(1); }
+            if (keys['Digit3']) { keys['Digit3'] = false; selectWeapon(2); }
             
             if (joystickActive) {
                 moveX = -joystickVector.x;
@@ -2139,22 +2193,54 @@
             // NPCs
             npcs.forEach(npc => {
                 if (npc.userData.isNPC) {
-                    if (Math.random() < 0.01) {
-                        npc.userData.velocity.x = (Math.random() - 0.5) * 0.03;
-                        npc.userData.velocity.z = (Math.random() - 0.5) * 0.03;
+                    const timeFactor = deltaTime * 60;
+                    if (currentTime < (npc.userData.pauseUntil || 0)) {
+                        updateCharacterAnimation(npc, false, deltaTime);
+                        return;
                     }
-                    
-                    npc.position.x += npc.userData.velocity.x;
-                    npc.position.z += npc.userData.velocity.z;
-                    
-                    if (Math.abs(npc.userData.velocity.x) > 0.001 || Math.abs(npc.userData.velocity.z) > 0.001) {
-                        npc.rotation.y = Math.atan2(npc.userData.velocity.x, npc.userData.velocity.z);
+
+                    let target = npc.userData.wanderTarget;
+                    if (!target) {
+                        target = pickNPCWanderTarget(npc.position);
+                        npc.userData.wanderTarget = target;
                     }
+
+                    const toTargetX = target.x - npc.position.x;
+                    const toTargetZ = target.z - npc.position.z;
+                    const targetDist = Math.sqrt(toTargetX * toTargetX + toTargetZ * toTargetZ);
+                    if (targetDist < 2) {
+                        npc.userData.pauseUntil = currentTime + 400 + Math.random() * 600;
+                        npc.userData.wanderTarget = pickNPCWanderTarget(npc.position);
+                    }
+
+                    // Avoid player if too close
+                    let steerX = toTargetX;
+                    let steerZ = toTargetZ;
+                    const distToPlayer = character.position.distanceTo(npc.position);
+                    if (distToPlayer < 8) {
+                        steerX = npc.position.x - character.position.x;
+                        steerZ = npc.position.z - character.position.z;
+                    }
+
+                    const steerLen = Math.sqrt(steerX * steerX + steerZ * steerZ) || 1;
+                    const moveX = (steerX / steerLen) * npc.userData.speed * timeFactor;
+                    const moveZ = (steerZ / steerLen) * npc.userData.speed * timeFactor;
+
+                    const nextX = npc.position.x + moveX;
+                    const nextZ = npc.position.z + moveZ;
+                    if (isLocationOnRoad(nextX, nextZ)) {
+                        npc.userData.wanderTarget = pickNPCWanderTarget(npc.position);
+                    } else {
+                        npc.position.x = nextX;
+                        npc.position.z = nextZ;
+                    }
+
+                    npc.rotation.y = Math.atan2(moveX, moveZ);
                     
-                    if (Math.abs(npc.position.x) > WORLD_SIZE/2 - 10) npc.userData.velocity.x *= -1;
-                    if (Math.abs(npc.position.z) > WORLD_SIZE/2 - 10) npc.userData.velocity.z *= -1;
+                    npc.position.x = Math.max(-WORLD_SIZE/2 + 10, Math.min(WORLD_SIZE/2 - 10, npc.position.x));
+                    npc.position.z = Math.max(-WORLD_SIZE/2 + 10, Math.min(WORLD_SIZE/2 - 10, npc.position.z));
                     
-                    const npcMoving = Math.abs(npc.userData.velocity.x) > 0.001 || Math.abs(npc.userData.velocity.z) > 0.001;
+                    const npcMoving = Math.abs(moveX) > 0.0005 || Math.abs(moveZ) > 0.0005;
                     updateCharacterAnimation(npc, npcMoving, deltaTime);
                 }
             });
