@@ -231,7 +231,7 @@
         /* Quest Arrow */
         .quest-arrow {
             position: fixed;
-            top: 50%;
+            top: 58%;
             left: 50%;
             width: var(--ui-quest-arrow);
             height: var(--ui-quest-arrow);
@@ -458,6 +458,10 @@
             .weapon-info {
                 bottom: calc(var(--ui-bottom-pad) + var(--ui-action-size) + var(--ui-weapon-switch) + (var(--ui-button-gap) * 2));
             }
+
+            .quest-arrow {
+                top: 62%;
+            }
         }
     </style>
 </head>
@@ -560,6 +564,8 @@
         let trees = [];
         let questGivers = [];
         let questTargetNPCs = [];
+        let pendingQuest = null;
+        let questGiverNPC = null;
         
         // Player Stats
         let playerHealth = 100;
@@ -1107,11 +1113,9 @@
         function startFirstQuest() {
             const firstQuest = getCurrentChainQuest();
             if (firstQuest && firstQuest.intro_dialog) {
-                showDialog(firstQuest.intro_dialog, () => {
-                    startQuest(firstQuest);
-                });
+                makeQuestAvailable(firstQuest);
             } else if (firstQuest) {
-                startQuest(firstQuest);
+                makeQuestAvailable(firstQuest);
             }
         }
         
@@ -1161,6 +1165,7 @@
         function startQuest(quest) {
             if (!quest) return;
             
+            clearQuestGiver();
             currentQuest = quest;
             
             // Initialize progress
@@ -1209,6 +1214,81 @@
             
             console.log(`Started quest: ${quest.title}`);
         }
+
+        function makeQuestAvailable(quest) {
+            if (!quest) return;
+            pendingQuest = quest;
+            questGiverNPC = pickQuestGiverNPC();
+            if (questGiverNPC) {
+                attachQuestMarker(questGiverNPC, 0xffaa00);
+                showNotification('New quest available! Find the marker.');
+                updateQuestUI();
+            } else {
+                // Fallback: start immediately if no NPCs are available
+                startQuest(quest);
+            }
+        }
+
+        function pickQuestGiverNPC() {
+            if (!npcs.length) return null;
+            const candidates = npcs.filter(npc => {
+                if (!npc || npc.userData.isQuestTarget) return false;
+                const dist = npc.position.distanceTo(character.position);
+                return dist > 20;
+            });
+            const pool = candidates.length ? candidates : npcs;
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        function clearQuestGiver() {
+            if (questGiverNPC && questGiverNPC.userData.questMarker) {
+                scene.remove(questGiverNPC.userData.questMarker);
+                questGiverNPC.userData.questMarker = null;
+            }
+            questGiverNPC = null;
+            pendingQuest = null;
+        }
+
+        function createQuestMarkerSprite(colorHex, labelText) {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, size, size);
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size * 0.46, 0, Math.PI * 2);
+            ctx.fillStyle = '#111';
+            ctx.fill();
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = `#${colorHex.toString(16).padStart(6, '0')}`;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 72px Denk One, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(labelText, size / 2, size / 2 + 4);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.minFilter = THREE.LinearFilter;
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(2.2, 2.2, 1);
+            sprite.userData.bobPhase = Math.random() * Math.PI * 2;
+            return sprite;
+        }
+
+        function attachQuestMarker(npc, colorHex, labelText = '!') {
+            if (!npc) return;
+            if (npc.userData.questMarker) {
+                scene.remove(npc.userData.questMarker);
+            }
+            const marker = createQuestMarkerSprite(colorHex, labelText);
+            npc.userData.questMarker = marker;
+            scene.add(marker);
+        }
         
         function updateQuestUI() {
             const container = document.getElementById('questContainer');
@@ -1219,6 +1299,10 @@
                 container.style.display = 'block';
                 title.textContent = currentQuest.title;
                 desc.textContent = currentQuest.objective?.description || currentQuest.description || '';
+            } else if (pendingQuest) {
+                container.style.display = 'block';
+                title.textContent = pendingQuest.title;
+                desc.textContent = 'Find the marked NPC to start this quest.';
             } else {
                 container.style.display = 'none';
             }
@@ -1355,6 +1439,7 @@
             targetNPC.userData.isQuestTarget = true;
             targetNPC.userData.targetName = targetName;
             targetNPC.userData.isAggressive = true;
+            attachQuestMarker(targetNPC, 0xff4444);
             
             questTargetNPCs.push(targetNPC);
             npcs.push(targetNPC);
@@ -1396,16 +1481,8 @@
             // Start next quest
             setTimeout(() => {
                 const nextQuest = getCurrentChainQuest();
-                if (nextQuest && shouldAutoStart) {
-                    if (nextQuest.intro_dialog) {
-                        showDialog(nextQuest.intro_dialog, () => {
-                            startQuest(nextQuest);
-                        });
-                    } else {
-                        startQuest(nextQuest);
-                    }
-                } else if (nextQuest) {
-                    showNotification('New quest available!');
+                if (nextQuest) {
+                    makeQuestAvailable(nextQuest);
                 } else {
                     showNotification('All quests completed! 🎉');
                 }
@@ -1415,22 +1492,57 @@
         function updateQuestArrow(targetLocation) {
             const arrow = document.getElementById('questArrow');
             
-            if (!targetLocation || !currentQuest) {
+            if (!targetLocation || (!currentQuest && !pendingQuest)) {
                 arrow.style.display = 'none';
                 return;
             }
             
             arrow.style.display = 'block';
             
-            // Calculate angle to target
-            const dx = targetLocation.x - character.position.x;
-            const dz = targetLocation.z - character.position.z;
-            const angle = Math.atan2(dx, dz) * (180 / Math.PI);
+            // Calculate screen-space direction from player to target
+            const playerPos = new THREE.Vector3(
+                character.position.x,
+                character.position.y,
+                character.position.z
+            );
+            const targetPos = new THREE.Vector3(targetLocation.x, playerPos.y, targetLocation.z);
+            const playerNDC = playerPos.clone().project(camera);
+            const targetNDC = targetPos.clone().project(camera);
+            const dx = targetNDC.x - playerNDC.x;
+            const dy = targetNDC.y - playerNDC.y;
+            const angle = Math.atan2(dx, dy) * (180 / Math.PI);
             
-            // Adjust for camera angle
-            const adjustedAngle = angle - (cameraAngle * 180 / Math.PI);
-            
-            arrow.style.transform = `translate(-50%, -50%) rotate(${adjustedAngle}deg)`;
+            arrow.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+        }
+
+        function updateQuestMarkers(currentTime) {
+            npcs.forEach(npc => {
+                const marker = npc?.userData?.questMarker;
+                if (!marker) return;
+                const bob = Math.sin(currentTime * 0.004 + marker.userData.bobPhase) * 0.1;
+                marker.position.set(npc.position.x, npc.position.y + 3.2 + bob, npc.position.z);
+            });
+        }
+
+        function tryStartPendingQuest() {
+            if (!pendingQuest || !questGiverNPC) return;
+            const dist = character.position.distanceTo(questGiverNPC.position);
+            if (dist > 4) return;
+            const quest = pendingQuest;
+            clearQuestGiver();
+            if (quest.intro_dialog) {
+                showDialog(quest.intro_dialog, () => startQuest(quest));
+            } else {
+                startQuest(quest);
+            }
+        }
+
+        function updatePendingQuestGuidance() {
+            if (!pendingQuest || !questGiverNPC) return;
+            const targetLocation = { x: questGiverNPC.position.x, z: questGiverNPC.position.z };
+            const distance = getDistanceTo(targetLocation.x, targetLocation.z);
+            document.getElementById('questDistance').textContent = `Distance: ${Math.round(distance)}m`;
+            updateQuestArrow(targetLocation);
         }
         
         function getDistanceTo(x, z) {
@@ -1768,6 +1880,12 @@
             }
             
             if (npc.userData.health <= 0) {
+                const wasQuestGiver = npc === questGiverNPC;
+                const pending = pendingQuest;
+                if (npc.userData.questMarker) {
+                    scene.remove(npc.userData.questMarker);
+                    npc.userData.questMarker = null;
+                }
                 // Check if quest target
                 if (npc.userData.isQuestTarget && currentQuest) {
                     const progress = questChainProgress.objectiveProgress[currentQuest.id];
@@ -1780,6 +1898,11 @@
                 scene.remove(npc);
                 const index = npcs.indexOf(npc);
                 if (index > -1) npcs.splice(index, 1);
+                
+                if (wasQuestGiver && pending) {
+                    clearQuestGiver();
+                    makeQuestAvailable(pending);
+                }
                 
                 playerCash += 100;
                 updateUI();
@@ -2038,8 +2161,9 @@
             
             // Cars
             cars.forEach(car => {
-                car.position.x += Math.sin(car.userData.direction) * car.userData.speed;
-                car.position.z += Math.cos(car.userData.direction) * car.userData.speed;
+                // Move along the car's facing direction (car body is oriented along +X at rotation.y = 0)
+                car.position.x += Math.cos(car.userData.direction) * car.userData.speed;
+                car.position.z += Math.sin(car.userData.direction) * car.userData.speed;
                 
                 if (car.position.x > WORLD_SIZE/2) car.position.x = -WORLD_SIZE/2;
                 if (car.position.x < -WORLD_SIZE/2) car.position.x = WORLD_SIZE/2;
@@ -2053,6 +2177,9 @@
             
             // Quest system
             checkQuestObjective();
+            updatePendingQuestGuidance();
+            tryStartPendingQuest();
+            updateQuestMarkers(currentTime);
             
             // Camera
             camera.position.x = character.position.x - Math.sin(cameraAngle) * cameraDistance;
