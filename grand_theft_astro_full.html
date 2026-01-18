@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Grand Theft Astro - Full Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Denk+One&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Denk One', sans-serif;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        canvas { display: block; }
+        
+        /* Joystick */
+        #joystick {
+            position: fixed;
+            bottom: 80px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            z-index: 1000;
+        }
+        
+        #joystickKnob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        /* Health Bar */
+        .health-bar-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        #healthHeart { width: 40px; height: 40px; font-size: 30px; }
+        
+        .health-bar-bg {
+            width: 150px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 2px solid white;
+            overflow: hidden;
+        }
+        
+        #healthBarFill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #ff4444, #ff6666);
+            transition: width 0.3s;
+        }
+        
+        /* Stars */
+        .star-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 5px;
+            z-index: 1000;
+        }
+        
+        .star { width: 30px; height: 30px; font-size: 24px; opacity: 0.3; }
+        .star.active { opacity: 1; }
+        
+        /* Cash Display */
+        .cash-display {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            color: #00ff00;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+        
+        /* Action Buttons */
+        .action-button {
+            position: fixed;
+            bottom: 100px;
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border: 3px solid white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.1s, background 0.1s;
+        }
+        
+        .action-button:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        #gunButton { right: 40px; }
+        #holdUpButton { right: 130px; }
+        
+        /* Weapon Switch Button */
+        #weaponSwitchButton {
+            position: fixed;
+            bottom: 190px;
+            right: 40px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            border: 2px solid #ffaa00;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        
+        /* Weapon Info Display */
+        .weapon-info {
+            position: fixed;
+            bottom: 260px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            text-align: center;
+            min-width: 100px;
+        }
+        
+        .weapon-name { font-weight: bold; color: #ffaa00; font-size: 16px; }
+        .weapon-ammo { color: #aaa; font-size: 12px; margin-top: 3px; }
+        .weapon-ammo.low { color: #ff4444; }
+        
+        /* Quest UI */
+        .quest-container {
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            border-radius: 10px;
+            border-left: 4px solid #ffaa00;
+            color: white;
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+        }
+        
+        .quest-title {
+            font-size: 18px;
+            color: #ffaa00;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .quest-description {
+            font-size: 14px;
+            color: #ccc;
+            line-height: 1.4;
+        }
+        
+        .quest-distance {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+        
+        /* Quest Arrow */
+        .quest-arrow {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 60px;
+            height: 60px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 999;
+            display: none;
+        }
+        
+        .quest-arrow svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 5px rgba(255, 170, 0, 0.8));
+        }
+        
+        /* Quest Marker */
+        .quest-marker {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #ffaa00;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: black;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.8);
+            cursor: pointer;
+            z-index: 1000;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Dialog System */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: none;
+        }
+        
+        .dialog-box {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+            border: 3px solid #ffaa00;
+            border-radius: 15px;
+            padding: 20px;
+            z-index: 2001;
+            display: none;
+        }
+        
+        .dialog-speaker {
+            font-size: 20px;
+            color: #ffaa00;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .dialog-text {
+            font-size: 16px;
+            color: white;
+            line-height: 1.5;
+        }
+        
+        .dialog-continue {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            color: #888;
+            font-size: 12px;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ffaa00;
+            border-radius: 10px;
+            padding: 20px 40px;
+            color: white;
+            font-size: 24px;
+            z-index: 3000;
+            text-align: center;
+            animation: fadeInOut 3s forwards;
+            display: none;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+        
+        /* Minimap */
+        .minimap-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            height: 150px;
+            border: 3px solid white;
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+        
+        #minimapCanvas {
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+        }
+        
+        /* Loading Screen */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 1s;
+        }
+        
+        #loadingScreen h1 {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255,100,0,0.8);
+        }
+        
+        #loadingScreen p { color: #aaa; font-size: 18px; }
+        
+        .loading-bar {
+            width: 300px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            margin-top: 30px;
+            overflow: hidden;
+        }
+        
+        .loading-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(to right, #ff6600, #ffaa00);
+            animation: loading 2s ease-in-out forwards;
+        }
+        
+        @keyframes loading {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        
+        /* Inventory Display */
+        .inventory-display {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .inventory-item {
+            padding: 5px 10px;
+            background: rgba(255, 170, 0, 0.3);
+            border-radius: 5px;
+            margin: 3px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <h1>GRAND THEFT ASTRO</h1>
+        <p>Loading game...</p>
+        <div class="loading-bar">
+            <div class="loading-bar-fill"></div>
+        </div>
+    </div>
+
+    <div id="gameContainer">
+        <!-- Health Bar -->
+        <div class="health-bar-container">
+            <div id="healthHeart">❤️</div>
+            <div class="health-bar-bg">
+                <div id="healthBarFill"></div>
+            </div>
+        </div>
+        
+        <!-- Stars -->
+        <div class="star-container">
+            <div class="star" id="star1">⭐</div>
+            <div class="star" id="star2">⭐</div>
+            <div class="star" id="star3">⭐</div>
+            <div class="star" id="star4">⭐</div>
+            <div class="star" id="star5">⭐</div>
+        </div>
+        
+        <!-- Cash -->
+        <div class="cash-display">$<span id="cashAmount">0</span></div>
+        
+        <!-- Quest UI -->
+        <div class="quest-container" id="questContainer">
+            <div class="quest-title" id="questTitle">Quest Title</div>
+            <div class="quest-description" id="questDescription">Quest description here</div>
+            <div class="quest-distance" id="questDistance">Distance: 0m</div>
+        </div>
+        
+        <!-- Quest Arrow -->
+        <div class="quest-arrow" id="questArrow">
+            <svg viewBox="0 0 100 100">
+                <polygon points="50,10 90,90 50,70 10,90" fill="#ffaa00" stroke="#fff" stroke-width="2"/>
+            </svg>
+        </div>
+        
+        <!-- Inventory Display -->
+        <div class="inventory-display" id="inventoryDisplay">
+            <div style="color: #ffaa00; margin-bottom: 5px;">📦 Inventory</div>
+            <div id="inventoryItems"></div>
+        </div>
+        
+        <!-- Dialog System -->
+        <div class="dialog-overlay" id="dialogOverlay"></div>
+        <div class="dialog-box" id="dialogBox">
+            <div class="dialog-speaker" id="dialogSpeaker">Speaker</div>
+            <div class="dialog-text" id="dialogText">Dialog text here...</div>
+            <div class="dialog-continue">Tap to continue ▶</div>
+        </div>
+        
+        <!-- Notification -->
+        <div class="notification" id="notification"></div>
+        
+        <!-- Minimap -->
+        <div class="minimap-container">
+            <canvas id="minimapCanvas"></canvas>
+        </div>
+        
+        <!-- Joystick -->
+        <div id="joystick">
+            <div id="joystickKnob"></div>
+        </div>
+        
+        <!-- Weapon Info -->
+        <div class="weapon-info">
+            <div class="weapon-name" id="weaponName">PISTOL</div>
+            <div class="weapon-ammo" id="weaponAmmo">∞</div>
+        </div>
+        
+        <!-- Weapon Switch Button -->
+        <div id="weaponSwitchButton">🔄</div>
+        
+        <!-- Action Buttons -->
+        <div id="holdUpButton" class="action-button">✋</div>
+        <div id="gunButton" class="action-button">🔫</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ============================================
+        // GAME STATE
+        // ============================================
+        let scene, camera, renderer;
+        let character;
+        let npcs = [];
+        let cars = [];
+        let buildings = [];
+        let trees = [];
+        let questGivers = [];
+        let questTargetNPCs = [];
+        
+        // Player Stats
+        let playerHealth = 100;
+        let playerCash = 0;
+        let wantedLevel = 0;
+        
+        // Inventory
+        let inventory = new Set();
+        
+        // Controls
+        let joystickActive = false;
+        let joystickVector = { x: 0, y: 0 };
+        let keys = {};
+        
+        // Camera
+        let cameraAngle = 0;
+        let cameraDistance = 15;
+        let cameraHeight = 10;
+        
+        // World
+        const WORLD_SIZE = 500;
+        const ROAD_WIDTH = 20;
+        const BLOCK_SIZE = 100;
+        
+        // ============================================
+        // WEAPON SYSTEM
+        // ============================================
+        const WEAPONS = {
+            pistol: {
+                name: 'PISTOL', damage: 25, fireRate: 500, ammo: Infinity,
+                maxAmmo: Infinity, spread: 0.05, icon: '🔫', color: 0xffff00,
+                projectileSpeed: 2, isAutomatic: false
+            },
+            uzi: {
+                name: 'UZI', damage: 15, fireRate: 100, ammo: 120,
+                maxAmmo: 120, spread: 0.15, icon: '🔫', color: 0xffaa00,
+                projectileSpeed: 2.5, isAutomatic: true
+            },
+            rocketLauncher: {
+                name: 'ROCKET', damage: 100, fireRate: 1500, ammo: 5,
+                maxAmmo: 5, spread: 0, icon: '🚀', color: 0xff4400,
+                projectileSpeed: 1, isAutomatic: false, explosive: true, explosionRadius: 10
+            }
+        };
+        
+        let currentWeaponIndex = 0;
+        const weaponKeys = ['pistol', 'uzi', 'rocketLauncher'];
+        let currentWeapon = weaponKeys[currentWeaponIndex];
+        let lastShotTime = 0;
+        let projectiles = [];
+        let explosions = [];
+        
+        // ============================================
+        // QUEST CHAIN DATA - Đầy đủ từ code.html gốc
+        // ============================================
+        const QUEST_CHAINS = {
+            "main_story": [
+                {
+                    id: "Q01",
+                    title: "First Night",
+                    giverName: "Switch",
+                    intro_dialog: [
+                        {speaker: "Switch", text: "You look fresh off the bus. Hungry? I pay in cash and chances."},
+                        {speaker: "Player", text: "Depends on the menu."},
+                        {speaker: "Switch", text: "Start simple. Come find me at the High Street Diner. We talk, we see."}
+                    ],
+                    objective: {
+                        type: "TALK",
+                        targetLocation: "High Street Diner",
+                        description: "Meet Switch outside the High Street Diner",
+                        minDistance: 50,
+                        maxDistance: 150
+                    },
+                    reward: {cash: 500},
+                    autostart_next: true
+                },
+                {
+                    id: "Q02",
+                    title: "Starter Package",
+                    giverName: "Switch",
+                    intro_dialog: [
+                        {speaker: "Switch", text: "Doc K at the docks needs a parcel—no shakes, no peeks."},
+                        {speaker: "Player", text: "What's inside?"},
+                        {speaker: "Switch", text: "The kind of question that lowers your rate. Just deliver."}
+                    ],
+                    objective: {
+                        type: "DELIVER_ITEM",
+                        item: "Sealed Parcel",
+                        fromLocation: "High Street Diner",
+                        toLocation: "Dock 12",
+                        description: "Deliver the sealed parcel to Doc K at Dock 12",
+                        minDistance: 100
+                    },
+                    reward: {cash: 1000},
+                    autostart_next: true
+                },
+                {
+                    id: "Q03",
+                    title: "Test Drive",
+                    giverName: "Doc K",
+                    intro_dialog: [
+                        {speaker: "Doc K", text: "Chopshop owes me. They want a Kuruma GT—clean condition."},
+                        {speaker: "Player", text: "Keys?"},
+                        {speaker: "Doc K", text: "Owner keeps them in the ignition. Lucky them, luckier you."}
+                    ],
+                    objective: {
+                        type: "STEAL_CAR",
+                        fromLocation: "Sable Row Parking",
+                        toLocation: "Eastside Chopshop",
+                        description: "Steal a car and deliver it to Eastside Chopshop",
+                        minDistance: 100,
+                        maxDistance: 250
+                    },
+                    reward: {cash: 1500},
+                    autostart_next: true
+                },
+                {
+                    id: "Q04",
+                    title: "Noise Control",
+                    giverName: "Rex",
+                    intro_dialog: [
+                        {speaker: "Rex", text: "Nines sells a signal muffler. We want it, fast."},
+                        {speaker: "Player", text: "You buying or me?"},
+                        {speaker: "Rex", text: "You buy, we reimburse. Bring a receipt. He hates fakes."}
+                    ],
+                    objective: {
+                        type: "BUY",
+                        item: "Signal Muffler",
+                        vendorLocation: "Underpass Market",
+                        price: 600,
+                        description: "Buy a Signal Muffler from Nines at Underpass Market",
+                        minDistance: 100,
+                        maxDistance: 200
+                    },
+                    reward: {cash: 900},
+                    autostart_next: true
+                },
+                {
+                    id: "Q04B",
+                    title: "The Drop-Off",
+                    giverName: "Rex",
+                    intro_dialog: [
+                        {speaker: "Rex", text: "You got it? Good. Bring it here, now."},
+                        {speaker: "Player", text: "On my way."}
+                    ],
+                    objective: {
+                        type: "DELIVER_ITEM",
+                        item: "Signal Muffler",
+                        fromLocation: "Underpass Market",
+                        toLocation: "Eastside Chopshop",
+                        description: "Deliver the Signal Muffler to Rex at Eastside Chopshop"
+                    },
+                    reward: {cash: 300},
+                    autostart_next: true
+                },
+                {
+                    id: "Q05",
+                    title: "Street Justice",
+                    giverName: "Rex",
+                    intro_dialog: [
+                        {speaker: "Rex", text: "Razor's crew hijacked our delivery."},
+                        {speaker: "Player", text: "Where's Razor?"},
+                        {speaker: "Rex", text: "Pier 4. End him, then scatter."}
+                    ],
+                    objective: {
+                        type: "KILL",
+                        targetName: "Razor",
+                        targetLocation: "Pier 4",
+                        description: "Eliminate Razor at Pier 4",
+                        minDistance: 150
+                    },
+                    reward: {cash: 2000, weapon: 'uzi'},
+                    autostart_next: true
+                },
+                {
+                    id: "Q06",
+                    title: "Big Score",
+                    giverName: "Rex",
+                    intro_dialog: [
+                        {speaker: "Rex", text: "You've proven yourself. Time for the big leagues."},
+                        {speaker: "Player", text: "What's the job?"},
+                        {speaker: "Rex", text: "Bank on 5th. In and out. You keep 30%."}
+                    ],
+                    objective: {
+                        type: "REACH_LOCATION",
+                        targetLocation: "First National Bank",
+                        description: "Get to the First National Bank on 5th Street",
+                        minDistance: 200
+                    },
+                    reward: {cash: 5000, weapon: 'rocketLauncher'},
+                    autostart_next: false
+                }
+            ]
+        };
+        
+        // Quest System State
+        let questChainData = null;
+        let questChainProgress = {
+            currentChain: null,
+            currentIndex: 0,
+            completedQuests: [],
+            objectiveProgress: {}
+        };
+        let currentQuest = null;
+        let namedLocations = {};
+        let questTargetMarkers = [];
+        
+        // NPC Appearance Definitions
+        const npcDefinitions = {
+            "Switch": { shirtColor: 0x333333, hairColor: 0x000000 },
+            "Doc K": { shirtColor: 0x8B4513, hairColor: 0x808080 },
+            "Rex": { shirtColor: 0xff0000, hairColor: 0xFFE4B5 },
+            "Nines": { shirtColor: 0x0000ff, hairColor: 0x000000 },
+            "Razor": { shirtColor: 0x800000, hairColor: 0x000000 }
+        };
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 100, 400);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('gameContainer').appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(100, 150, 100);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Create world
+            createGround();
+            createRoads();
+            createBuildings();
+            createTrees();
+            createCharacter();
+            createNPCs(15);
+            createCars(10);
+            
+            // Initialize Quest System
+            initializeQuestChains();
+            
+            // Setup controls
+            setupControls();
+            
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    // Start first quest with intro dialog
+                    startFirstQuest();
+                }, 1000);
+            }, 2000);
+            
+            // Start game loop
+            animate();
+        }
+        
+        // ============================================
+        // WORLD CREATION
+        // ============================================
+        function createGround() {
+            const groundGeometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE);
+            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x3d8b3d });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+        }
+        
+        function createRoads() {
+            const roadMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            
+            for (let i = -2; i <= 2; i++) {
+                // Horizontal roads
+                const hRoad = new THREE.Mesh(
+                    new THREE.PlaneGeometry(WORLD_SIZE, ROAD_WIDTH),
+                    roadMaterial
+                );
+                hRoad.rotation.x = -Math.PI / 2;
+                hRoad.position.set(0, 0.01, i * BLOCK_SIZE);
+                scene.add(hRoad);
+                
+                // Vertical roads
+                const vRoad = new THREE.Mesh(
+                    new THREE.PlaneGeometry(ROAD_WIDTH, WORLD_SIZE),
+                    roadMaterial
+                );
+                vRoad.rotation.x = -Math.PI / 2;
+                vRoad.position.set(i * BLOCK_SIZE, 0.01, 0);
+                scene.add(vRoad);
+            }
+        }
+        
+        function createBuildings() {
+            const buildingColors = [0x8B4513, 0x696969, 0x4a4a4a, 0x5c4033, 0x36454f];
+            
+            for (let bx = -2; bx <= 2; bx++) {
+                for (let bz = -2; bz <= 2; bz++) {
+                    if (Math.random() > 0.3) {
+                        const height = 20 + Math.random() * 60;
+                        const width = 30 + Math.random() * 30;
+                        const depth = 30 + Math.random() * 30;
+                        
+                        const geometry = new THREE.BoxGeometry(width, height, depth);
+                        const material = new THREE.MeshLambertMaterial({
+                            color: buildingColors[Math.floor(Math.random() * buildingColors.length)]
+                        });
+                        
+                        const building = new THREE.Mesh(geometry, material);
+                        building.position.set(
+                            bx * BLOCK_SIZE + (Math.random() - 0.5) * 40,
+                            height / 2,
+                            bz * BLOCK_SIZE + (Math.random() - 0.5) * 40
+                        );
+                        building.castShadow = true;
+                        building.receiveShadow = true;
+                        
+                        scene.add(building);
+                        buildings.push(building);
+                    }
+                }
+            }
+        }
+        
+        function createTrees() {
+            for (let i = 0; i < 50; i++) {
+                const x = (Math.random() - 0.5) * WORLD_SIZE * 0.9;
+                const z = (Math.random() - 0.5) * WORLD_SIZE * 0.9;
+                
+                if (Math.abs(x % BLOCK_SIZE) > ROAD_WIDTH && Math.abs(z % BLOCK_SIZE) > ROAD_WIDTH) {
+                    const treeGroup = new THREE.Group();
+                    
+                    const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 4, 8);
+                    const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                    trunk.position.y = 2;
+                    treeGroup.add(trunk);
+                    
+                    const leavesGeometry = new THREE.SphereGeometry(3, 8, 8);
+                    const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                    leaves.position.y = 6;
+                    treeGroup.add(leaves);
+                    
+                    treeGroup.position.set(x, 0, z);
+                    scene.add(treeGroup);
+                    trees.push(treeGroup);
+                }
+            }
+        }
+        
+        // ============================================
+        // CHARACTER CREATION
+        // ============================================
+        function createCharacter(x = 0, z = 0, isPlayer = true, appearance = null) {
+            const charGroup = new THREE.Group();
+            
+            const shirtColor = appearance?.shirtColor || (isPlayer ? 0x333333 : 0xff0000);
+            const hairColor = appearance?.hairColor || 0x3d2914;
+            
+            // Body
+            const bodyGeometry = new THREE.BoxGeometry(1, 1.5, 0.5);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: shirtColor });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 1.25;
+            body.castShadow = true;
+            charGroup.add(body);
+            charGroup.userData.body = body;
+            
+            // Head
+            const headGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 2.3;
+            charGroup.add(head);
+            
+            // Hair
+            const hairGeometry = new THREE.BoxGeometry(0.65, 0.2, 0.65);
+            const hairMaterial = new THREE.MeshLambertMaterial({ color: hairColor });
+            const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+            hair.position.y = 2.7;
+            charGroup.add(hair);
+            
+            // Legs with pivots
+            const legGeometry = new THREE.BoxGeometry(0.35, 1, 0.35);
+            const legMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+            
+            const leftLegPivot = new THREE.Group();
+            leftLegPivot.position.set(-0.2, 1, 0);
+            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+            leftLeg.position.y = -0.5;
+            leftLegPivot.add(leftLeg);
+            charGroup.add(leftLegPivot);
+            charGroup.userData.leftLegPivot = leftLegPivot;
+            
+            const rightLegPivot = new THREE.Group();
+            rightLegPivot.position.set(0.2, 1, 0);
+            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+            rightLeg.position.y = -0.5;
+            rightLegPivot.add(rightLeg);
+            charGroup.add(rightLegPivot);
+            charGroup.userData.rightLegPivot = rightLegPivot;
+            
+            // Arms with pivots
+            const armGeometry = new THREE.BoxGeometry(0.25, 1, 0.25);
+            const armMaterial = new THREE.MeshLambertMaterial({ color: shirtColor });
+            
+            const leftArmPivot = new THREE.Group();
+            leftArmPivot.position.set(-0.65, 1.75, 0);
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.y = -0.5;
+            leftArmPivot.add(leftArm);
+            charGroup.add(leftArmPivot);
+            charGroup.userData.leftArmPivot = leftArmPivot;
+            
+            const rightArmPivot = new THREE.Group();
+            rightArmPivot.position.set(0.65, 1.75, 0);
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.y = -0.5;
+            rightArmPivot.add(rightArm);
+            charGroup.add(rightArmPivot);
+            charGroup.userData.rightArmPivot = rightArmPivot;
+            
+            charGroup.userData.walkTime = 0;
+            charGroup.userData.health = 100;
+            charGroup.position.set(x, 0, z);
+            scene.add(charGroup);
+            
+            if (isPlayer) {
+                character = charGroup;
+            }
+            
+            return charGroup;
+        }
+        
+        function createNPCs(count) {
+            const shirtColors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff];
+            
+            for (let i = 0; i < count; i++) {
+                let x, z;
+                do {
+                    x = (Math.random() - 0.5) * WORLD_SIZE * 0.8;
+                    z = (Math.random() - 0.5) * WORLD_SIZE * 0.8;
+                } while (Math.sqrt(x*x + z*z) < 30);
+                
+                const npc = createCharacter(x, z, false, {
+                    shirtColor: shirtColors[Math.floor(Math.random() * shirtColors.length)],
+                    hairColor: [0x000000, 0x3d2914, 0xFFE4B5, 0x808080][Math.floor(Math.random() * 4)]
+                });
+                
+                npc.userData.velocity = {
+                    x: (Math.random() - 0.5) * 0.03,
+                    z: (Math.random() - 0.5) * 0.03
+                };
+                npc.userData.isNPC = true;
+                
+                npcs.push(npc);
+            }
+        }
+        
+        function createCars(count) {
+            const carColors = [0xff0000, 0x0000ff, 0x00ff00, 0xffff00, 0xffffff, 0x000000];
+            
+            for (let i = 0; i < count; i++) {
+                const car = new THREE.Group();
+                
+                const roadIndex = Math.floor(Math.random() * 5) - 2;
+                const isHorizontal = Math.random() > 0.5;
+                const offset = (Math.random() - 0.5) * WORLD_SIZE * 0.8;
+                
+                let x, z, rotation;
+                if (isHorizontal) {
+                    x = offset;
+                    z = roadIndex * BLOCK_SIZE + (Math.random() > 0.5 ? 4 : -4);
+                    rotation = Math.random() > 0.5 ? 0 : Math.PI;
+                } else {
+                    x = roadIndex * BLOCK_SIZE + (Math.random() > 0.5 ? 4 : -4);
+                    z = offset;
+                    rotation = Math.random() > 0.5 ? Math.PI/2 : -Math.PI/2;
+                }
+                
+                const carColor = carColors[Math.floor(Math.random() * carColors.length)];
+                
+                // Car body
+                const bodyGeometry = new THREE.BoxGeometry(4, 1.5, 2);
+                const bodyMaterial = new THREE.MeshLambertMaterial({ color: carColor });
+                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                body.position.y = 0.75;
+                car.add(body);
+                
+                // Car roof
+                const roofGeometry = new THREE.BoxGeometry(2, 1, 1.8);
+                const roof = new THREE.Mesh(roofGeometry, bodyMaterial);
+                roof.position.set(-0.3, 1.75, 0);
+                car.add(roof);
+                
+                // Wheels
+                const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+                const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x111111 });
+                
+                [[-1.2, 0.4, 1.1], [-1.2, 0.4, -1.1], [1.2, 0.4, 1.1], [1.2, 0.4, -1.1]].forEach(pos => {
+                    const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                    wheel.rotation.x = Math.PI / 2;
+                    wheel.position.set(...pos);
+                    car.add(wheel);
+                });
+                
+                car.position.set(x, 0, z);
+                car.rotation.y = rotation;
+                car.userData.speed = 0.05 + Math.random() * 0.05;
+                car.userData.direction = rotation;
+                
+                scene.add(car);
+                cars.push(car);
+            }
+        }
+        
+        // ============================================
+        // QUEST SYSTEM
+        // ============================================
+        function initializeQuestChains() {
+            questChainData = QUEST_CHAINS;
+            questChainProgress.currentChain = "main_story";
+            questChainProgress.currentIndex = 0;
+            namedLocations = {};
+        }
+        
+        function startFirstQuest() {
+            const firstQuest = getCurrentChainQuest();
+            if (firstQuest && firstQuest.intro_dialog) {
+                showDialog(firstQuest.intro_dialog, () => {
+                    startQuest(firstQuest);
+                });
+            } else if (firstQuest) {
+                startQuest(firstQuest);
+            }
+        }
+        
+        function getCurrentChainQuest() {
+            if (!questChainData || !questChainProgress.currentChain) return null;
+            
+            const chain = questChainData[questChainProgress.currentChain];
+            if (!chain || questChainProgress.currentIndex >= chain.length) return null;
+            
+            return chain[questChainProgress.currentIndex];
+        }
+        
+        function getOrCreateLocation(locationName, options = {}) {
+            if (namedLocations[locationName]) {
+                return namedLocations[locationName];
+            }
+            
+            // Generate new location
+            const minDist = options.minDistance || 50;
+            const maxDist = options.maxDistance || 200;
+            
+            let x, z, attempts = 0;
+            do {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = minDist + Math.random() * (maxDist - minDist);
+                x = character.position.x + Math.cos(angle) * distance;
+                z = character.position.z + Math.sin(angle) * distance;
+                
+                // Keep within world bounds
+                x = Math.max(-WORLD_SIZE/2 + 20, Math.min(WORLD_SIZE/2 - 20, x));
+                z = Math.max(-WORLD_SIZE/2 + 20, Math.min(WORLD_SIZE/2 - 20, z));
+                attempts++;
+            } while (attempts < 50 && isLocationOnRoad(x, z));
+            
+            namedLocations[locationName] = { x, z, name: locationName };
+            return namedLocations[locationName];
+        }
+        
+        function isLocationOnRoad(x, z) {
+            for (let i = -2; i <= 2; i++) {
+                if (Math.abs(z - i * BLOCK_SIZE) < ROAD_WIDTH/2) return true;
+                if (Math.abs(x - i * BLOCK_SIZE) < ROAD_WIDTH/2) return true;
+            }
+            return false;
+        }
+        
+        function startQuest(quest) {
+            if (!quest) return;
+            
+            currentQuest = quest;
+            
+            // Initialize progress
+            questChainProgress.objectiveProgress[quest.id] = {
+                started: true
+            };
+            
+            // Pre-generate locations
+            const objective = quest.objective;
+            if (objective) {
+                switch (objective.type) {
+                    case 'TALK':
+                    case 'KILL':
+                    case 'REACH_LOCATION':
+                        getOrCreateLocation(objective.targetLocation, {
+                            minDistance: objective.minDistance,
+                            maxDistance: objective.maxDistance
+                        });
+                        break;
+                    case 'DELIVER_ITEM':
+                        getOrCreateLocation(objective.fromLocation, { minDistance: 30, maxDistance: 80 });
+                        getOrCreateLocation(objective.toLocation, {
+                            minDistance: objective.minDistance || 100,
+                            maxDistance: objective.maxDistance || 200
+                        });
+                        break;
+                    case 'STEAL_CAR':
+                        getOrCreateLocation(objective.fromLocation, { minDistance: 50, maxDistance: 150 });
+                        getOrCreateLocation(objective.toLocation, {
+                            minDistance: objective.minDistance || 100,
+                            maxDistance: objective.maxDistance || 250
+                        });
+                        break;
+                    case 'BUY':
+                        getOrCreateLocation(objective.vendorLocation, {
+                            minDistance: objective.minDistance,
+                            maxDistance: objective.maxDistance
+                        });
+                        break;
+                }
+            }
+            
+            // Update UI
+            updateQuestUI();
+            showNotification(`New Quest: ${quest.title}`);
+            
+            console.log(`Started quest: ${quest.title}`);
+        }
+        
+        function updateQuestUI() {
+            const container = document.getElementById('questContainer');
+            const title = document.getElementById('questTitle');
+            const desc = document.getElementById('questDescription');
+            
+            if (currentQuest) {
+                container.style.display = 'block';
+                title.textContent = currentQuest.title;
+                desc.textContent = currentQuest.objective?.description || currentQuest.description || '';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+        
+        function checkQuestObjective() {
+            if (!currentQuest || !currentQuest.objective) return;
+            
+            const objective = currentQuest.objective;
+            const progress = questChainProgress.objectiveProgress[currentQuest.id];
+            
+            let targetLocation = null;
+            let distance = Infinity;
+            
+            switch (objective.type) {
+                case 'TALK':
+                case 'REACH_LOCATION':
+                    targetLocation = namedLocations[objective.targetLocation];
+                    if (targetLocation) {
+                        distance = getDistanceTo(targetLocation.x, targetLocation.z);
+                        if (distance < 10) {
+                            completeQuest();
+                        }
+                    }
+                    break;
+                    
+                case 'DELIVER_ITEM':
+                    if (!hasItem(objective.item)) {
+                        // Pickup phase
+                        targetLocation = namedLocations[objective.fromLocation];
+                        if (targetLocation) {
+                            distance = getDistanceTo(targetLocation.x, targetLocation.z);
+                            if (distance < 10) {
+                                addItem(objective.item);
+                                showNotification(`Picked up: ${objective.item}`);
+                                document.getElementById('questDescription').textContent = 
+                                    `Deliver ${objective.item} to ${objective.toLocation}`;
+                            }
+                        }
+                    } else {
+                        // Delivery phase
+                        targetLocation = namedLocations[objective.toLocation];
+                        if (targetLocation) {
+                            distance = getDistanceTo(targetLocation.x, targetLocation.z);
+                            if (distance < 10) {
+                                removeItem(objective.item);
+                                completeQuest();
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 'STEAL_CAR':
+                    if (!progress.hasCar) {
+                        // Find car phase
+                        targetLocation = namedLocations[objective.fromLocation];
+                        if (targetLocation) {
+                            distance = getDistanceTo(targetLocation.x, targetLocation.z);
+                            // Check if near any car
+                            cars.forEach(car => {
+                                const carDist = character.position.distanceTo(car.position);
+                                if (carDist < 5) {
+                                    progress.hasCar = true;
+                                    progress.stolenCar = car;
+                                    showNotification('Car acquired! Deliver to dropoff.');
+                                    document.getElementById('questDescription').textContent = 
+                                        `Deliver the car to ${objective.toLocation}`;
+                                }
+                            });
+                        }
+                    } else {
+                        // Delivery phase
+                        targetLocation = namedLocations[objective.toLocation];
+                        if (targetLocation) {
+                            distance = getDistanceTo(targetLocation.x, targetLocation.z);
+                            if (distance < 15) {
+                                completeQuest();
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 'BUY':
+                    targetLocation = namedLocations[objective.vendorLocation];
+                    if (targetLocation) {
+                        distance = getDistanceTo(targetLocation.x, targetLocation.z);
+                        if (distance < 10 && playerCash >= objective.price) {
+                            playerCash -= objective.price;
+                            addItem(objective.item);
+                            showNotification(`Bought: ${objective.item}`);
+                            updateUI();
+                            completeQuest();
+                        } else if (distance < 10 && playerCash < objective.price) {
+                            showNotification(`Need $${objective.price} to buy ${objective.item}`);
+                        }
+                    }
+                    break;
+                    
+                case 'KILL':
+                    targetLocation = namedLocations[objective.targetLocation];
+                    if (targetLocation) {
+                        distance = getDistanceTo(targetLocation.x, targetLocation.z);
+                        
+                        // Spawn target NPC if close enough
+                        if (distance < 50 && !progress.targetSpawned) {
+                            spawnQuestTarget(objective.targetName, targetLocation);
+                            progress.targetSpawned = true;
+                        }
+                        
+                        // Check if target is killed
+                        if (progress.targetKilled) {
+                            completeQuest();
+                        }
+                    }
+                    break;
+            }
+            
+            // Update distance display
+            if (targetLocation) {
+                document.getElementById('questDistance').textContent = `Distance: ${Math.round(distance)}m`;
+            }
+            
+            // Update quest arrow
+            updateQuestArrow(targetLocation);
+        }
+        
+        function spawnQuestTarget(targetName, location) {
+            const appearance = npcDefinitions[targetName] || {
+                shirtColor: 0x800000,
+                hairColor: 0x000000
+            };
+            
+            const targetNPC = createCharacter(location.x, location.z, false, appearance);
+            targetNPC.userData.isQuestTarget = true;
+            targetNPC.userData.targetName = targetName;
+            targetNPC.userData.isAggressive = true;
+            
+            questTargetNPCs.push(targetNPC);
+            npcs.push(targetNPC);
+            
+            showNotification(`${targetName} spotted!`);
+        }
+        
+        function completeQuest() {
+            if (!currentQuest) return;
+            
+            // Award rewards
+            if (currentQuest.reward) {
+                if (currentQuest.reward.cash) {
+                    playerCash += currentQuest.reward.cash;
+                    showNotification(`+$${currentQuest.reward.cash}`);
+                }
+                if (currentQuest.reward.weapon) {
+                    showNotification(`Unlocked: ${WEAPONS[currentQuest.reward.weapon]?.name || currentQuest.reward.weapon}`);
+                }
+            }
+            
+            updateUI();
+            
+            // Track completion
+            questChainProgress.completedQuests.push(currentQuest.id);
+            questChainProgress.currentIndex++;
+            
+            const shouldAutoStart = currentQuest.autostart_next;
+            
+            showNotification(`Quest Complete: ${currentQuest.title}`);
+            
+            // Clear current quest
+            currentQuest = null;
+            updateQuestUI();
+            
+            // Hide quest arrow
+            document.getElementById('questArrow').style.display = 'none';
+            
+            // Start next quest
+            setTimeout(() => {
+                const nextQuest = getCurrentChainQuest();
+                if (nextQuest && shouldAutoStart) {
+                    if (nextQuest.intro_dialog) {
+                        showDialog(nextQuest.intro_dialog, () => {
+                            startQuest(nextQuest);
+                        });
+                    } else {
+                        startQuest(nextQuest);
+                    }
+                } else if (nextQuest) {
+                    showNotification('New quest available!');
+                } else {
+                    showNotification('All quests completed! 🎉');
+                }
+            }, 2000);
+        }
+        
+        function updateQuestArrow(targetLocation) {
+            const arrow = document.getElementById('questArrow');
+            
+            if (!targetLocation || !currentQuest) {
+                arrow.style.display = 'none';
+                return;
+            }
+            
+            arrow.style.display = 'block';
+            
+            // Calculate angle to target
+            const dx = targetLocation.x - character.position.x;
+            const dz = targetLocation.z - character.position.z;
+            const angle = Math.atan2(dx, dz) * (180 / Math.PI);
+            
+            // Adjust for camera angle
+            const adjustedAngle = angle - (cameraAngle * 180 / Math.PI);
+            
+            arrow.style.transform = `translate(-50%, -50%) rotate(${adjustedAngle}deg)`;
+        }
+        
+        function getDistanceTo(x, z) {
+            return Math.sqrt(
+                Math.pow(character.position.x - x, 2) +
+                Math.pow(character.position.z - z, 2)
+            );
+        }
+        
+        // ============================================
+        // INVENTORY SYSTEM
+        // ============================================
+        function addItem(itemName) {
+            inventory.add(itemName);
+            updateInventoryUI();
+        }
+        
+        function removeItem(itemName) {
+            inventory.delete(itemName);
+            updateInventoryUI();
+        }
+        
+        function hasItem(itemName) {
+            return inventory.has(itemName);
+        }
+        
+        function updateInventoryUI() {
+            const display = document.getElementById('inventoryDisplay');
+            const items = document.getElementById('inventoryItems');
+            
+            if (inventory.size > 0) {
+                display.style.display = 'block';
+                items.innerHTML = Array.from(inventory).map(item => 
+                    `<div class="inventory-item">${item}</div>`
+                ).join('');
+            } else {
+                display.style.display = 'none';
+            }
+        }
+        
+        // ============================================
+        // DIALOG SYSTEM
+        // ============================================
+        let currentDialog = null;
+        let currentDialogIndex = 0;
+        let dialogCallback = null;
+        
+        function showDialog(lines, onComplete) {
+            currentDialog = lines;
+            currentDialogIndex = 0;
+            dialogCallback = onComplete;
+            
+            document.getElementById('dialogOverlay').style.display = 'block';
+            document.getElementById('dialogBox').style.display = 'block';
+            
+            showDialogLine();
+        }
+        
+        function showDialogLine() {
+            if (currentDialogIndex >= currentDialog.length) {
+                closeDialog();
+                return;
+            }
+            
+            const line = currentDialog[currentDialogIndex];
+            document.getElementById('dialogSpeaker').textContent = line.speaker;
+            document.getElementById('dialogText').textContent = line.text;
+        }
+        
+        function advanceDialog() {
+            currentDialogIndex++;
+            showDialogLine();
+        }
+        
+        function closeDialog() {
+            document.getElementById('dialogOverlay').style.display = 'none';
+            document.getElementById('dialogBox').style.display = 'none';
+            
+            currentDialog = null;
+            currentDialogIndex = 0;
+            
+            if (dialogCallback) {
+                const cb = dialogCallback;
+                dialogCallback = null;
+                cb();
+            }
+        }
+        
+        // ============================================
+        // NOTIFICATION SYSTEM
+        // ============================================
+        function showNotification(text) {
+            const notif = document.getElementById('notification');
+            notif.textContent = text;
+            notif.style.display = 'block';
+            notif.style.animation = 'none';
+            notif.offsetHeight; // Trigger reflow
+            notif.style.animation = 'fadeInOut 3s forwards';
+            
+            setTimeout(() => {
+                notif.style.display = 'none';
+            }, 3000);
+        }
+        
+        // ============================================
+        // CONTROLS
+        // ============================================
+        function setupControls() {
+            // Keyboard
+            document.addEventListener('keydown', (e) => { keys[e.code] = true; });
+            document.addEventListener('keyup', (e) => { keys[e.code] = false; });
+            
+            // Joystick
+            const joystick = document.getElementById('joystick');
+            const knob = document.getElementById('joystickKnob');
+            
+            const handleJoystick = (clientX, clientY) => {
+                const rect = joystick.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                let dx = clientX - centerX;
+                let dy = clientY - centerY;
+                
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const maxDistance = rect.width / 2 - 25;
+                
+                if (distance > maxDistance) {
+                    dx = (dx / distance) * maxDistance;
+                    dy = (dy / distance) * maxDistance;
+                }
+                
+                knob.style.left = `calc(50% + ${dx}px)`;
+                knob.style.top = `calc(50% + ${dy}px)`;
+                
+                joystickVector.x = dx / maxDistance;
+                joystickVector.y = dy / maxDistance;
+            };
+            
+            joystick.addEventListener('touchstart', (e) => {
+                joystickActive = true;
+                handleJoystick(e.touches[0].clientX, e.touches[0].clientY);
+            });
+            
+            joystick.addEventListener('touchmove', (e) => {
+                if (joystickActive) handleJoystick(e.touches[0].clientX, e.touches[0].clientY);
+            });
+            
+            joystick.addEventListener('touchend', () => {
+                joystickActive = false;
+                joystickVector = { x: 0, y: 0 };
+                knob.style.left = '50%';
+                knob.style.top = '50%';
+            });
+            
+            joystick.addEventListener('mousedown', (e) => {
+                joystickActive = true;
+                handleJoystick(e.clientX, e.clientY);
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (joystickActive) handleJoystick(e.clientX, e.clientY);
+            });
+            
+            document.addEventListener('mouseup', () => {
+                joystickActive = false;
+                joystickVector = { x: 0, y: 0 };
+                knob.style.left = '50%';
+                knob.style.top = '50%';
+            });
+            
+            // Action buttons
+            document.getElementById('gunButton').addEventListener('click', shoot);
+            document.getElementById('gunButton').addEventListener('touchstart', (e) => { e.preventDefault(); shoot(); });
+            document.getElementById('holdUpButton').addEventListener('click', holdUp);
+            document.getElementById('weaponSwitchButton').addEventListener('click', switchWeapon);
+            document.getElementById('weaponSwitchButton').addEventListener('touchstart', (e) => { e.preventDefault(); switchWeapon(); });
+            
+            // Dialog click
+            document.getElementById('dialogOverlay').addEventListener('click', advanceDialog);
+            document.getElementById('dialogBox').addEventListener('click', advanceDialog);
+            
+            // Window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        
+        // ============================================
+        // WEAPON FUNCTIONS
+        // ============================================
+        function switchWeapon() {
+            currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length;
+            currentWeapon = weaponKeys[currentWeaponIndex];
+            updateWeaponUI();
+        }
+        
+        function updateWeaponUI() {
+            const weapon = WEAPONS[currentWeapon];
+            document.getElementById('weaponName').textContent = weapon.name;
+            
+            const ammoText = document.getElementById('weaponAmmo');
+            if (weapon.ammo === Infinity) {
+                ammoText.textContent = '∞';
+                ammoText.classList.remove('low');
+            } else {
+                ammoText.textContent = `${weapon.ammo} / ${weapon.maxAmmo}`;
+                ammoText.classList.toggle('low', weapon.ammo < weapon.maxAmmo * 0.2);
+            }
+            
+            document.getElementById('gunButton').textContent = weapon.icon;
+        }
+        
+        function shoot() {
+            const now = Date.now();
+            const weapon = WEAPONS[currentWeapon];
+            
+            if (now - lastShotTime < weapon.fireRate) return;
+            if (weapon.ammo !== Infinity && weapon.ammo <= 0) return;
+            
+            lastShotTime = now;
+            
+            if (weapon.ammo !== Infinity) {
+                weapon.ammo--;
+                updateWeaponUI();
+            }
+            
+            const direction = new THREE.Vector3(
+                Math.sin(character.rotation.y),
+                0,
+                Math.cos(character.rotation.y)
+            );
+            
+            if (weapon.spread > 0) {
+                direction.x += (Math.random() - 0.5) * weapon.spread;
+                direction.z += (Math.random() - 0.5) * weapon.spread;
+                direction.normalize();
+            }
+            
+            createProjectile(direction, weapon);
+            
+            // Muzzle flash
+            const flash = new THREE.PointLight(weapon.color, 3, 8);
+            flash.position.copy(character.position);
+            flash.position.y += 1.5;
+            scene.add(flash);
+            setTimeout(() => scene.remove(flash), 50);
+            
+            if (wantedLevel < 5 && Math.random() < 0.2) {
+                wantedLevel++;
+                updateUI();
+            }
+        }
+        
+        function createProjectile(direction, weapon) {
+            let projectile;
+            
+            if (weapon.explosive) {
+                const rocketGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.8, 8);
+                const rocketMaterial = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+                projectile = new THREE.Mesh(rocketGeometry, rocketMaterial);
+                projectile.rotation.x = Math.PI / 2;
+                projectile.rotation.z = -character.rotation.y;
+            } else {
+                const bulletGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const bulletMaterial = new THREE.MeshBasicMaterial({ color: weapon.color });
+                projectile = new THREE.Mesh(bulletGeometry, bulletMaterial);
+            }
+            
+            projectile.position.copy(character.position);
+            projectile.position.y += 1.5;
+            projectile.position.x += direction.x * 0.8;
+            projectile.position.z += direction.z * 0.8;
+            
+            projectile.userData = {
+                direction: direction.clone(),
+                speed: weapon.projectileSpeed,
+                damage: weapon.damage,
+                explosive: weapon.explosive || false,
+                explosionRadius: weapon.explosionRadius || 0,
+                lifetime: 100
+            };
+            
+            scene.add(projectile);
+            projectiles.push(projectile);
+        }
+        
+        function updateProjectiles() {
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const proj = projectiles[i];
+                const data = proj.userData;
+                
+                proj.position.x += data.direction.x * data.speed;
+                proj.position.z += data.direction.z * data.speed;
+                data.lifetime--;
+                
+                // Check NPC collision
+                let hit = false;
+                for (let j = npcs.length - 1; j >= 0; j--) {
+                    const npc = npcs[j];
+                    const dist = proj.position.distanceTo(npc.position);
+                    
+                    if (dist < 1.5) {
+                        hit = true;
+                        
+                        if (data.explosive) {
+                            createExplosion(proj.position, data.explosionRadius);
+                            damageNPCsInRadius(proj.position, data.explosionRadius, data.damage);
+                        } else {
+                            damageNPC(npc, data.damage);
+                        }
+                        break;
+                    }
+                }
+                
+                if (hit || data.lifetime <= 0) {
+                    scene.remove(proj);
+                    projectiles.splice(i, 1);
+                }
+            }
+        }
+        
+        function damageNPC(npc, damage) {
+            npc.userData.health = (npc.userData.health || 100) - damage;
+            
+            // Flash red
+            if (npc.userData.body) {
+                const originalColor = npc.userData.body.material.color.getHex();
+                npc.userData.body.material.color.setHex(0xff0000);
+                setTimeout(() => npc.userData.body.material.color.setHex(originalColor), 100);
+            }
+            
+            if (npc.userData.health <= 0) {
+                // Check if quest target
+                if (npc.userData.isQuestTarget && currentQuest) {
+                    const progress = questChainProgress.objectiveProgress[currentQuest.id];
+                    if (progress) {
+                        progress.targetKilled = true;
+                        showNotification(`${npc.userData.targetName} eliminated!`);
+                    }
+                }
+                
+                scene.remove(npc);
+                const index = npcs.indexOf(npc);
+                if (index > -1) npcs.splice(index, 1);
+                
+                playerCash += 100;
+                updateUI();
+            }
+        }
+        
+        function damageNPCsInRadius(center, radius, damage) {
+            npcs.forEach(npc => {
+                const dist = center.distanceTo(npc.position);
+                if (dist < radius) {
+                    const damageMult = 1 - (dist / radius);
+                    damageNPC(npc, damage * damageMult);
+                }
+            });
+        }
+        
+        function createExplosion(position, radius) {
+            const explosionGeometry = new THREE.SphereGeometry(radius * 0.5, 16, 16);
+            const explosionMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xff6600, transparent: true, opacity: 0.8 
+            });
+            const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
+            explosion.position.copy(position);
+            scene.add(explosion);
+            
+            const light = new THREE.PointLight(0xff6600, 5, radius * 2);
+            light.position.copy(position);
+            scene.add(light);
+            
+            explosions.push({ mesh: explosion, light: light, progress: 0 });
+        }
+        
+        function updateExplosions() {
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const exp = explosions[i];
+                exp.progress += 0.1;
+                
+                const scale = 1 + exp.progress * 2;
+                exp.mesh.scale.set(scale, scale, scale);
+                exp.mesh.material.opacity = Math.max(0, 0.8 - exp.progress);
+                exp.light.intensity = Math.max(0, 5 - exp.progress * 5);
+                
+                if (exp.progress >= 1) {
+                    scene.remove(exp.mesh);
+                    scene.remove(exp.light);
+                    explosions.splice(i, 1);
+                }
+            }
+        }
+        
+        function holdUp() {
+            npcs.forEach(npc => {
+                const distance = character.position.distanceTo(npc.position);
+                if (distance < 5) {
+                    playerCash += 50;
+                    if (wantedLevel < 5) wantedLevel++;
+                    updateUI();
+                }
+            });
+        }
+        
+        // ============================================
+        // UI UPDATE
+        // ============================================
+        function updateUI() {
+            document.getElementById('healthBarFill').style.width = `${playerHealth}%`;
+            document.getElementById('cashAmount').textContent = playerCash.toLocaleString();
+            
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`star${i}`).classList.toggle('active', i <= wantedLevel);
+            }
+        }
+        
+        // ============================================
+        // MINIMAP
+        // ============================================
+        function updateMinimap() {
+            const canvas = document.getElementById('minimapCanvas');
+            const ctx = canvas.getContext('2d');
+            const size = 150;
+            
+            canvas.width = size;
+            canvas.height = size;
+            
+            const scale = size / WORLD_SIZE;
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Roads
+            ctx.fillStyle = '#333';
+            for (let i = -2; i <= 2; i++) {
+                ctx.fillRect(0, centerY + i * BLOCK_SIZE * scale - 2, size, 4);
+                ctx.fillRect(centerX + i * BLOCK_SIZE * scale - 2, 0, 4, size);
+            }
+            
+            // Quest target
+            if (currentQuest && currentQuest.objective) {
+                let targetLoc = null;
+                const obj = currentQuest.objective;
+                
+                switch (obj.type) {
+                    case 'TALK':
+                    case 'KILL':
+                    case 'REACH_LOCATION':
+                        targetLoc = namedLocations[obj.targetLocation];
+                        break;
+                    case 'DELIVER_ITEM':
+                        targetLoc = hasItem(obj.item) ? 
+                            namedLocations[obj.toLocation] : namedLocations[obj.fromLocation];
+                        break;
+                    case 'STEAL_CAR':
+                        const prog = questChainProgress.objectiveProgress[currentQuest.id];
+                        targetLoc = prog?.hasCar ? 
+                            namedLocations[obj.toLocation] : namedLocations[obj.fromLocation];
+                        break;
+                    case 'BUY':
+                        targetLoc = namedLocations[obj.vendorLocation];
+                        break;
+                }
+                
+                if (targetLoc) {
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.beginPath();
+                    ctx.arc(centerX + targetLoc.x * scale, centerY + targetLoc.z * scale, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // NPCs
+            ctx.fillStyle = '#00ff00';
+            npcs.forEach(npc => {
+                ctx.beginPath();
+                ctx.arc(centerX + npc.position.x * scale, centerY + npc.position.z * scale, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Cars
+            ctx.fillStyle = '#ffff00';
+            cars.forEach(car => {
+                ctx.fillRect(centerX + car.position.x * scale - 2, centerY + car.position.z * scale - 1, 4, 2);
+            });
+            
+            // Player
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(centerX + character.position.x * scale, centerY + character.position.z * scale, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Player direction
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX + character.position.x * scale, centerY + character.position.z * scale);
+            ctx.lineTo(
+                centerX + character.position.x * scale + Math.sin(character.rotation.y) * 8,
+                centerY + character.position.z * scale + Math.cos(character.rotation.y) * 8
+            );
+            ctx.stroke();
+        }
+        
+        // ============================================
+        // ANIMATION
+        // ============================================
+        function updateCharacterAnimation(char, isMoving, deltaTime) {
+            const walkSpeed = 12;
+            const legSwing = 0.8;
+            const armSwing = 0.6;
+            
+            if (isMoving) {
+                char.userData.walkTime += walkSpeed * deltaTime;
+                const t = char.userData.walkTime;
+                
+                char.userData.leftLegPivot.rotation.x = Math.sin(t) * legSwing;
+                char.userData.rightLegPivot.rotation.x = Math.sin(t + Math.PI) * legSwing;
+                char.userData.leftArmPivot.rotation.x = Math.sin(t + Math.PI) * armSwing;
+                char.userData.rightArmPivot.rotation.x = Math.sin(t) * armSwing;
+            } else {
+                char.userData.leftLegPivot.rotation.x *= 0.85;
+                char.userData.rightLegPivot.rotation.x *= 0.85;
+                char.userData.leftArmPivot.rotation.x *= 0.85;
+                char.userData.rightArmPivot.rotation.x *= 0.85;
+            }
+        }
+        
+        // ============================================
+        // MAIN GAME LOOP
+        // ============================================
+        let lastTime = 0;
+        
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+            
+            const deltaTime = (currentTime - lastTime) / 1000 || 0.016;
+            lastTime = currentTime;
+            
+            // Player movement
+            let moveX = 0, moveZ = 0;
+            const speed = 0.15;
+            
+            if (keys['KeyW'] || keys['ArrowUp']) moveZ = 1;
+            if (keys['KeyS'] || keys['ArrowDown']) moveZ = -1;
+            if (keys['KeyA'] || keys['ArrowLeft']) moveX = -1;
+            if (keys['KeyD'] || keys['ArrowRight']) moveX = 1;
+            if (keys['Space']) shoot();
+            if (keys['KeyQ']) { keys['KeyQ'] = false; switchWeapon(); }
+            
+            if (joystickActive) {
+                moveX = -joystickVector.x;
+                moveZ = -joystickVector.y;
+            }
+            
+            const magnitude = Math.sqrt(moveX * moveX + moveZ * moveZ);
+            const isMoving = magnitude > 0.1;
+            
+            if (isMoving) {
+                const normalizedX = (moveX / magnitude) * speed;
+                const normalizedZ = (moveZ / magnitude) * speed;
+                
+                character.position.x += normalizedX;
+                character.position.z += normalizedZ;
+                character.rotation.y = Math.atan2(normalizedX, normalizedZ);
+                
+                character.position.x = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, character.position.x));
+                character.position.z = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, character.position.z));
+            }
+            
+            updateCharacterAnimation(character, isMoving, deltaTime);
+            
+            // NPCs
+            npcs.forEach(npc => {
+                if (npc.userData.isNPC) {
+                    if (Math.random() < 0.01) {
+                        npc.userData.velocity.x = (Math.random() - 0.5) * 0.03;
+                        npc.userData.velocity.z = (Math.random() - 0.5) * 0.03;
+                    }
+                    
+                    npc.position.x += npc.userData.velocity.x;
+                    npc.position.z += npc.userData.velocity.z;
+                    
+                    if (Math.abs(npc.userData.velocity.x) > 0.001 || Math.abs(npc.userData.velocity.z) > 0.001) {
+                        npc.rotation.y = Math.atan2(npc.userData.velocity.x, npc.userData.velocity.z);
+                    }
+                    
+                    if (Math.abs(npc.position.x) > WORLD_SIZE/2 - 10) npc.userData.velocity.x *= -1;
+                    if (Math.abs(npc.position.z) > WORLD_SIZE/2 - 10) npc.userData.velocity.z *= -1;
+                    
+                    const npcMoving = Math.abs(npc.userData.velocity.x) > 0.001 || Math.abs(npc.userData.velocity.z) > 0.001;
+                    updateCharacterAnimation(npc, npcMoving, deltaTime);
+                }
+            });
+            
+            // Cars
+            cars.forEach(car => {
+                car.position.x += Math.sin(car.userData.direction) * car.userData.speed;
+                car.position.z += Math.cos(car.userData.direction) * car.userData.speed;
+                
+                if (car.position.x > WORLD_SIZE/2) car.position.x = -WORLD_SIZE/2;
+                if (car.position.x < -WORLD_SIZE/2) car.position.x = WORLD_SIZE/2;
+                if (car.position.z > WORLD_SIZE/2) car.position.z = -WORLD_SIZE/2;
+                if (car.position.z < -WORLD_SIZE/2) car.position.z = WORLD_SIZE/2;
+            });
+            
+            // Projectiles & Explosions
+            updateProjectiles();
+            updateExplosions();
+            
+            // Quest system
+            checkQuestObjective();
+            
+            // Camera
+            camera.position.x = character.position.x - Math.sin(cameraAngle) * cameraDistance;
+            camera.position.y = cameraHeight;
+            camera.position.z = character.position.z - Math.cos(cameraAngle) * cameraDistance;
+            camera.lookAt(character.position.x, character.position.y + 2, character.position.z);
+            
+            // Minimap
+            updateMinimap();
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Start game
+        init();
+        setTimeout(() => updateWeaponUI(), 100);
+    </script>
+</body>
+</html>
