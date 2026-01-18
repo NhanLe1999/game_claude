@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Grand Theft Astro - Full Demo</title>
-    <link href="css2.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Denk+One&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -21,26 +21,6 @@
             overflow: hidden;
             font-family: 'Denk One', sans-serif;
         }
-
-        :root {
-            --ui-margin: clamp(12px, 3vmin, 24px);
-            --ui-padding: clamp(10px, 2.5vmin, 18px);
-            --ui-font-lg: clamp(16px, 3.5vmin, 28px);
-            --ui-font-md: clamp(12px, 2.5vmin, 18px);
-            --ui-font-sm: clamp(10px, 2vmin, 14px);
-            --ui-joystick-size: clamp(80px, 18vmin, 140px);
-            --ui-joystick-knob: clamp(34px, 8vmin, 64px);
-            --ui-action-size: clamp(52px, 12vmin, 88px);
-            --ui-weapon-switch: clamp(44px, 10vmin, 72px);
-            --ui-minimap: clamp(110px, 20vmin, 200px);
-            --ui-heart: clamp(28px, 6vmin, 48px);
-            --ui-star: clamp(20px, 4.5vmin, 36px);
-            --ui-quest-arrow: clamp(44px, 10vmin, 72px);
-            --ui-health-width: clamp(120px, 24vmin, 200px);
-            --ui-health-height: clamp(14px, 3vmin, 24px);
-            --ui-button-gap: clamp(10px, 3vmin, 24px);
-            --ui-bottom-pad: clamp(70px, 14vmin, 120px);
-        }
         
         #gameContainer {
             position: relative;
@@ -50,16 +30,16 @@
             justify-content: center;
             align-items: center;
         }
-
+        
         canvas { display: block; }
         
         /* Joystick */
         #joystick {
             position: fixed;
-            bottom: var(--ui-bottom-pad);
-            left: var(--ui-margin);
-            width: var(--ui-joystick-size);
-            height: var(--ui-joystick-size);
+            bottom: 80px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             border: 3px solid rgba(255, 255, 255, 0.4);
@@ -71,8 +51,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: var(--ui-joystick-knob);
-            height: var(--ui-joystick-knob);
+            width: 50px;
+            height: 50px;
             background: rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             border: 2px solid white;
@@ -81,19 +61,19 @@
         /* Health Bar */
         .health-bar-container {
             position: fixed;
-            top: var(--ui-margin);
-            left: var(--ui-margin);
+            top: 20px;
+            left: 20px;
             display: flex;
             align-items: center;
-            gap: clamp(6px, 2vmin, 12px);
+            gap: 10px;
             z-index: 1000;
         }
         
-        #healthHeart { width: var(--ui-heart); height: var(--ui-heart); font-size: var(--ui-font-lg); }
+        #healthHeart { width: 40px; height: 40px; font-size: 30px; }
         
         .health-bar-bg {
-            width: var(--ui-health-width);
-            height: var(--ui-health-height);
+            width: 150px;
+            height: 20px;
             background: rgba(0, 0, 0, 0.5);
             border-radius: 10px;
             border: 2px solid white;
@@ -110,23 +90,23 @@
         /* Stars */
         .star-container {
             position: fixed;
-            top: var(--ui-margin);
-            right: var(--ui-margin);
+            top: 20px;
+            right: 20px;
             display: flex;
-            gap: clamp(3px, 1vmin, 8px);
+            gap: 5px;
             z-index: 1000;
         }
         
-        .star { width: var(--ui-star); height: var(--ui-star); font-size: var(--ui-font-md); opacity: 0.3; }
+        .star { width: 30px; height: 30px; font-size: 24px; opacity: 0.3; }
         .star.active { opacity: 1; }
         
         /* Cash Display */
         .cash-display {
             position: fixed;
-            top: calc(var(--ui-margin) + clamp(26px, 6vmin, 48px));
-            right: var(--ui-margin);
+            top: 60px;
+            right: 20px;
             color: #00ff00;
-            font-size: var(--ui-font-lg);
+            font-size: 24px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             z-index: 1000;
         }
@@ -134,16 +114,16 @@
         /* Action Buttons */
         .action-button {
             position: fixed;
-            bottom: var(--ui-bottom-pad);
-            width: var(--ui-action-size);
-            height: var(--ui-action-size);
+            bottom: 100px;
+            width: 70px;
+            height: 70px;
             background: rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border: 3px solid white;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: var(--ui-font-lg);
+            font-size: 24px;
             cursor: pointer;
             z-index: 1000;
             transition: transform 0.1s, background 0.1s;
@@ -154,23 +134,23 @@
             background: rgba(255, 255, 255, 0.5);
         }
         
-        #gunButton { right: var(--ui-margin); }
-        #holdUpButton { right: calc(var(--ui-margin) + var(--ui-action-size) + var(--ui-button-gap)); }
+        #gunButton { right: 40px; }
+        #holdUpButton { right: 130px; }
         
         /* Weapon Switch Button */
         #weaponSwitchButton {
             position: fixed;
-            bottom: calc(var(--ui-bottom-pad) + var(--ui-action-size) + var(--ui-button-gap));
-            right: var(--ui-margin);
-            width: var(--ui-weapon-switch);
-            height: var(--ui-weapon-switch);
+            bottom: 190px;
+            right: 40px;
+            width: 60px;
+            height: 60px;
             background: rgba(0, 0, 0, 0.6);
             border-radius: 10px;
             border: 2px solid #ffaa00;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: var(--ui-font-lg);
+            font-size: 28px;
             cursor: pointer;
             z-index: 1000;
         }
@@ -178,52 +158,52 @@
         /* Weapon Info Display */
         .weapon-info {
             position: fixed;
-            bottom: calc(var(--ui-bottom-pad) + var(--ui-action-size) + var(--ui-weapon-switch) + (var(--ui-button-gap) * 2));
-            right: var(--ui-margin);
+            bottom: 260px;
+            right: 20px;
             background: rgba(0, 0, 0, 0.7);
-            padding: clamp(6px, 2vmin, 10px) clamp(10px, 3vmin, 16px);
+            padding: 8px 15px;
             border-radius: 8px;
             color: white;
-            font-size: var(--ui-font-sm);
+            font-size: 14px;
             z-index: 1000;
             text-align: center;
             min-width: 100px;
         }
         
-        .weapon-name { font-weight: bold; color: #ffaa00; font-size: var(--ui-font-md); }
-        .weapon-ammo { color: #aaa; font-size: var(--ui-font-sm); margin-top: 3px; }
+        .weapon-name { font-weight: bold; color: #ffaa00; font-size: 16px; }
+        .weapon-ammo { color: #aaa; font-size: 12px; margin-top: 3px; }
         .weapon-ammo.low { color: #ff4444; }
         
         /* Quest UI */
         .quest-container {
             position: fixed;
-            top: calc(var(--ui-margin) + clamp(48px, 10vmin, 90px));
-            left: var(--ui-margin);
+            top: 100px;
+            left: 20px;
             background: rgba(0, 0, 0, 0.8);
-            padding: var(--ui-padding);
+            padding: 15px 20px;
             border-radius: 10px;
             border-left: 4px solid #ffaa00;
             color: white;
             z-index: 1000;
-            max-width: clamp(220px, 40vw, 360px);
+            max-width: 300px;
             display: none;
         }
         
         .quest-title {
-            font-size: var(--ui-font-md);
+            font-size: 18px;
             color: #ffaa00;
             margin-bottom: 5px;
             font-weight: bold;
         }
         
         .quest-description {
-            font-size: var(--ui-font-sm);
+            font-size: 14px;
             color: #ccc;
             line-height: 1.4;
         }
         
         .quest-distance {
-            font-size: var(--ui-font-sm);
+            font-size: 12px;
             color: #888;
             margin-top: 8px;
         }
@@ -233,8 +213,8 @@
             position: fixed;
             top: 50%;
             left: 50%;
-            width: var(--ui-quest-arrow);
-            height: var(--ui-quest-arrow);
+            width: 60px;
+            height: 60px;
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 999;
@@ -250,14 +230,14 @@
         /* Quest Marker */
         .quest-marker {
             position: absolute;
-            width: clamp(28px, 7vmin, 48px);
-            height: clamp(28px, 7vmin, 48px);
+            width: 40px;
+            height: 40px;
             background: #ffaa00;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: var(--ui-font-md);
+            font-size: 24px;
             font-weight: bold;
             color: black;
             box-shadow: 0 0 20px rgba(255, 170, 0, 0.8);
@@ -285,28 +265,28 @@
         
         .dialog-box {
             position: fixed;
-            bottom: var(--ui-bottom-pad);
+            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
-            max-width: clamp(280px, 70vw, 680px);
+            max-width: 600px;
             background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
             border: 3px solid #ffaa00;
             border-radius: 15px;
-            padding: var(--ui-padding);
+            padding: 20px;
             z-index: 2001;
             display: none;
         }
         
         .dialog-speaker {
-            font-size: var(--ui-font-md);
+            font-size: 20px;
             color: #ffaa00;
             margin-bottom: 10px;
             font-weight: bold;
         }
         
         .dialog-text {
-            font-size: var(--ui-font-sm);
+            font-size: 16px;
             color: white;
             line-height: 1.5;
         }
@@ -316,7 +296,7 @@
             bottom: 10px;
             right: 20px;
             color: #888;
-            font-size: var(--ui-font-sm);
+            font-size: 12px;
             animation: blink 1s infinite;
         }
         
@@ -334,9 +314,9 @@
             background: rgba(0, 0, 0, 0.9);
             border: 2px solid #ffaa00;
             border-radius: 10px;
-            padding: calc(var(--ui-padding) + 2px) calc(var(--ui-padding) + 12px);
+            padding: 20px 40px;
             color: white;
-            font-size: var(--ui-font-lg);
+            font-size: 24px;
             z-index: 3000;
             text-align: center;
             animation: fadeInOut 3s forwards;
@@ -353,10 +333,10 @@
         /* Minimap */
         .minimap-container {
             position: fixed;
-            bottom: var(--ui-margin);
-            right: var(--ui-margin);
-            width: var(--ui-minimap);
-            height: var(--ui-minimap);
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            height: 150px;
             border: 3px solid white;
             border-radius: 10px;
             overflow: hidden;
@@ -387,16 +367,16 @@
         
         #loadingScreen h1 {
             color: white;
-            font-size: clamp(28px, 8vmin, 52px);
+            font-size: 48px;
             margin-bottom: 20px;
             text-shadow: 0 0 20px rgba(255,100,0,0.8);
         }
         
-        #loadingScreen p { color: #aaa; font-size: var(--ui-font-md); }
+        #loadingScreen p { color: #aaa; font-size: 18px; }
         
         .loading-bar {
-            width: clamp(200px, 60vw, 360px);
-            height: clamp(8px, 2vmin, 12px);
+            width: 300px;
+            height: 10px;
             background: #333;
             border-radius: 5px;
             margin-top: 30px;
@@ -418,46 +398,22 @@
         /* Inventory Display */
         .inventory-display {
             position: fixed;
-            top: calc(var(--ui-margin) + clamp(48px, 10vmin, 90px));
-            right: var(--ui-margin);
+            top: 100px;
+            right: 20px;
             background: rgba(0, 0, 0, 0.7);
-            padding: var(--ui-padding);
+            padding: 10px;
             border-radius: 8px;
             color: white;
-            font-size: var(--ui-font-sm);
+            font-size: 12px;
             z-index: 1000;
             display: none;
         }
         
         .inventory-item {
-            padding: clamp(4px, 1.5vmin, 8px) clamp(6px, 2vmin, 12px);
+            padding: 5px 10px;
             background: rgba(255, 170, 0, 0.3);
             border-radius: 5px;
-            margin: clamp(2px, 1vmin, 6px) 0;
-        }
-
-        @media (orientation: portrait) {
-            :root {
-                --ui-bottom-pad: clamp(60px, 12vmin, 110px);
-                --ui-action-size: clamp(48px, 13vmin, 82px);
-                --ui-joystick-size: clamp(70px, 20vmin, 130px);
-                --ui-joystick-knob: clamp(30px, 9vmin, 60px);
-                --ui-minimap: clamp(100px, 26vmin, 190px);
-            }
-
-            .quest-container {
-                width: calc(100vw - (var(--ui-margin) * 2));
-                max-width: none;
-            }
-
-            .minimap-container {
-                top: calc(var(--ui-margin) + clamp(70px, 16vmin, 130px));
-                bottom: auto;
-            }
-
-            .weapon-info {
-                bottom: calc(var(--ui-bottom-pad) + var(--ui-action-size) + var(--ui-weapon-switch) + (var(--ui-button-gap) * 2));
-            }
+            margin: 3px 0;
         }
     </style>
 </head>
@@ -547,7 +503,7 @@
         <div id="gunButton" class="action-button">🔫</div>
     </div>
 
-    <script src="three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // ============================================
         // GAME STATE
@@ -794,6 +750,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.getElementById('gameContainer').appendChild(renderer.domElement);
+            
             // Lighting
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambientLight);
@@ -1618,8 +1575,6 @@
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                // adjust UI scale on resize
-                try { updateUIScale(); } catch(e) { }
             });
         }
         
@@ -1859,9 +1814,7 @@
         function updateMinimap() {
             const canvas = document.getElementById('minimapCanvas');
             const ctx = canvas.getContext('2d');
-            const rect = canvas.getBoundingClientRect();
-            const size = Math.min(rect.width, rect.height);
-            if (size <= 0) return;
+            const size = 150;
             
             canvas.width = size;
             canvas.height = size;
